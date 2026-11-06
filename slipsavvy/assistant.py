@@ -7,6 +7,8 @@ from fractions import Fraction
 import math
 import random
 
+from .engine import ProbabilityModeler
+
 
 def fraction(value, name, minimum=0, maximum=1):
     if isinstance(value, bool) or not isinstance(value, (str, int, float)) or len(str(value)) > 40:
@@ -66,8 +68,25 @@ def simulate(data, trials=100000, seed=42):
     if any(not isinstance(i,str) or not i.strip() or len(i)>100 for i in ids) or len(set(ids)) != len(ids):
         raise ValueError('Leg IDs must be unique nonempty strings')
     prices = [odds_price(l.get('american_odds')) for l in legs]
-    price_based = [l.get('win_probability') is None and data.get('use_price_implied_probabilities') is True for l in legs]
-    base_probs = [1/prices[i] if price_based[i] else fraction(l.get('win_probability'), 'leg probability') for i,l in enumerate(legs)]
+    opposite_prices = [odds_price(l['opposing_american_odds'])
+                       if l.get('opposing_american_odds') is not None else None for l in legs]
+    base_probs, bases = [], []
+    for i, leg in enumerate(legs):
+        if leg.get('win_probability') is not None:
+            base_probs.append(fraction(leg['win_probability'], 'leg probability'))
+            bases.append('estimate')
+        elif opposite_prices[i] is not None:
+            # odds_price validated integer odds and the assistant's input bounds.
+            base_probs.append(ProbabilityModeler.devig_two_way(
+                int(Fraction(str(leg['american_odds']))),
+                int(Fraction(str(leg['opposing_american_odds']))))[0])
+            bases.append('two_way')
+        elif data.get('use_price_implied_probabilities') is True:
+            base_probs.append(1 / prices[i])
+            bases.append('price_only')
+        else:
+            raise ValueError('Supply a leg probability, both sides of a two-way market, or opt into the price-implied scenario')
+    price_based = [basis == 'price_only' for basis in bases]
     scenarios = data.get('game_scripts')
     if scenarios is None:
         scenarios = [{'name':'Base assumptions', 'weight':'1', 'probabilities':dict(zip(ids,base_probs))}]
@@ -93,6 +112,17 @@ def simulate(data, trials=100000, seed=42):
         price = fraction(quoted_price, 'quoted decimal price', 1, 1000000)
     analytic = sum(w*math.prod(ps) for w,ps in zip(weights,conditional))
     marginals = [sum(w*ps[i] for w,ps in zip(weights,conditional)) for i in range(len(legs))]
+    price_only_scenario = any(price_based) and data.get('game_scripts') is None
+    expected_net = None if price_only_scenario else float(stake * (analytic * price - 1))
+    margin_note = (
+        'One-sided prices provide break-even rates, not fair win probabilities. '
+        'Multiplying those rates compounds their included margin. Expected net is unavailable; '
+        'using the same prices for probability and payout creates a circular zero, not evidence of zero house edge.'
+        if price_only_scenario else
+        'Two-way no-vig estimates use proportional normalization of mutually exclusive, exhaustive outcomes '
+        'from the same market and time. They are market-derived assumptions, not validated forecasts. '
+        'The market overround is not the same as expected loss on a selection or combined bet.'
+    )
     rng = random.Random(seed)
     cumulative, running = [], 0.0
     for w in weights:
@@ -112,8 +142,13 @@ def simulate(data, trials=100000, seed=42):
     for i, leg in enumerate(legs):
         context = {k:leg.get(k) for k in ('source','captured_at','weather','game_script','rationale','event')}
         leg_reports.append({'id':ids[i], 'name':str(leg.get('name',ids[i]))[:300],
-            'probability_basis':'User-supplied game-script scenario' if data.get('game_scripts') is not None else ('Price-implied starting point; includes bookmaker margin, not a forecast' if price_based[i] else 'User-supplied estimate; unverified'),
+            'probability_basis':'User-supplied game-script scenario' if data.get('game_scripts') is not None else {
+                'price_only':'Price-implied starting point; includes bookmaker margin, not a forecast',
+                'two_way':'Proportional two-way no-vig estimate; market-derived, not a forecast',
+                'estimate':'User-supplied estimate; unverified'}[bases[i]],
             'american_odds':float(fraction(leg['american_odds'],'odds',-100000,100000)),
+            'opposing_american_odds':float(Fraction(str(leg['opposing_american_odds']))) if opposite_prices[i] is not None else None,
+            'market_overround_percent':float(100 * (1/prices[i] + 1/opposite_prices[i] - 1)) if opposite_prices[i] is not None else None,
             'model_estimated_win_percent':float(100*marginals[i]),
             'estimated_hit_score_out_of_100':round(float(100*marginals[i]),1),
             'price_break_even_percent':float(100/prices[i]),
@@ -125,10 +160,13 @@ def simulate(data, trials=100000, seed=42):
         'simulation_sampling_interval_95_percent':[100*x for x in wilson(hits,trials)],
         'analytic_model_win_percent':float(100*analytic),
         'estimated_hit_score_out_of_100':round(float(100*analytic),1),
-        'score_label':('Odds-based scenario /100; not a prediction or confidence rating.' if any(price_based) and data.get('game_scripts') is None else 'Model-estimated hit probability /100. Uncalibrated; not confidence in the model or data.'),
+        'score_label':('Odds-based scenario /100; not a prediction or confidence rating.' if price_only_scenario else 'Model-estimated hit probability /100. Uncalibrated; not confidence in the model or data.'),
         'gross_if_win':float(stake*price),'net_if_win':float(stake*(price-1)),
         'loss_if_lose':float(stake),'break_even_percent':float(100/price),
-        'expected_net_under_model':float(stake*(analytic*price-1)),
+        'expected_net_under_model':expected_net,
+        'expected_net_status':('Unavailable: supply independent probability estimates or complete two-way market prices.'
+                               if price_only_scenario else 'Calculated under the stated probability assumptions; not a verified edge.'),
+        'bookmaker_margin_note':margin_note,
         'price_basis':'User-quoted ticket price' if quoted_price is not None else 'Product of leg prices; hypothetical, not a sportsbook quote',
         'legs':leg_reports,'game_scripts':[{'name':n,'weight':float(w),'simulated_trials':c} for n,w,c in zip(names,weights,scenario_counts)],
         'limitations':['100,000 simulations reduce sampling noise, not model error.',
