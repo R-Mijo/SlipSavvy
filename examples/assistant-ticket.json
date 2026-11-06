@@ -1,0 +1,11 @@
+{
+  "stake":"5", "assume_conditional_independence":true,
+  "legs":[
+    {"id":"A","name":"Synthetic home team moneyline","event":"Example game A","american_odds":-150,"win_probability":"0.60","source":"Synthetic demonstration; not live data","captured_at":"2026-11-06T12:00:00Z","weather":{"status":"Not fetched","roof":"unknown"},"game_script":"Home team controls possession; illustrative only"},
+    {"id":"B","name":"Synthetic away team moneyline","event":"Example game B","american_odds":100,"win_probability":"0.50","source":"Synthetic demonstration; not live data","captured_at":"2026-11-06T12:00:00Z"}
+  ],
+  "game_scripts":[
+    {"name":"Baseline example","weight":"0.7","probabilities":{"A":"0.60","B":"0.50"}},
+    {"name":"Adverse example","weight":"0.3","probabilities":{"A":"0.45","B":"0.40"}}
+  ]
+}

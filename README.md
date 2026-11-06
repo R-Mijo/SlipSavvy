@@ -1,10 +1,39 @@
+![Product banner](docs/assets/banner.svg)
+
 # SlipSavvy
 
 **Check the math behind your bet slip.**
 
-SlipSavvy is an offline Python library for scenario probabilities, payout calculations and portfolio risk. It moves arithmetic and bounded searches out of model conversations and into reproducible code.
+SlipSavvy is a local ticket assistant and Python library for scenario probabilities, payout calculations and portfolio risk. Optional weather retrieval makes an explicit outbound request. It moves arithmetic and bounded searches out of model conversations and into reproducible code.
 
-**0.2.0 | Python 3.11+ | Apache-2.0 | No third-party runtime dependencies**
+**0.3.0 | Python 3.11+ | Apache-2.0 | No third-party runtime dependencies**
+
+## In plain English
+
+SlipSavvy is a ticket-research and math assistant. It explains each leg, compares ticket probabilities and payouts, and runs transparent scenarios. For example, it shows why six independent 60% legs have only a 4.6656% chance of all winning. Its current probabilities are supplied by the user or scenario author, not produced by a validated sports prediction model.
+
+
+## Ticket assistant and 100,000-run simulations
+
+```sh
+python -m slipsavvy ui
+python -m slipsavvy simulate examples/assistant-ticket.json --trials 100000 --seed 42
+python -m slipsavvy education
+```
+
+The local app opens at `http://127.0.0.1:8766`. Its Ticket Assistant, Learn the Odds and Weather Desk tabs provide:
+
+- Per-leg source/capture-time, weather/roof and game-script context, with missing fields shown.
+- Seeded Python Monte Carlo runs (100,000 by default), checked against an exact analytical result under the same assumptions.
+- Weighted game scripts shared across a trial, with explicit conditional-independence assumptions.
+- A model-estimated hit score out of 100 for each leg and the ticket. This is a probability display, not calibrated confidence, a data-quality grade or a betting recommendation.
+- Simulated wins/losses, gross and net return, expected net, and a sampling-only 95% interval. Model error is not included in that interval.
+- An interactive 1–6-leg probability lesson and American-odds / decimal-price / break-even ladder. Multiply decimal odds; do not add American prices.
+- Optional stadium-coordinate weather forecasts with UTC timestamps and Open-Meteo attribution. Forecasts do not automatically adjust probabilities. Review commercial API terms before charging for a connected service.
+
+**Advertisable now:** “Explore your ticket with Python-powered 100,000-run Monte Carlo simulations and transparent game-script assumptions.”
+
+**Not established:** predictive accuracy, a verified edge, calibrated confidence scores, automated live odds/injury feeds, screenshot parsing in a released native app, paid subscriptions or App Store availability. The iPhone/Android app remains in development. See [product roadmap](docs/PRODUCT_UPDATE.md).
 
 ## Run it
 

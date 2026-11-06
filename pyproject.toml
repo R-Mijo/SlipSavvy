@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slipsavvy"
-version = "0.2.0"
+version = "0.3.0"
 description = "Exact scenario probabilities, payout modeling, bounded allocation search and adversarial audits"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -19,4 +19,4 @@ slipsavvy = "slipsavvy.cli:main"
 include = ["slipsavvy*"]
 
 [tool.setuptools.package-data]
-slipsavvy = []
+slipsavvy = ["ui.html"]
