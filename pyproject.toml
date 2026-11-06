@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slipsavvy"
+version = "0.2.0"
+description = "Exact scenario probabilities, payout modeling, bounded allocation search and adversarial audits"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+authors = [{name = "Marco Armijo (R-Mijo)"}]
+dependencies = []
+
+[project.scripts]
+slipsavvy = "slipsavvy.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["slipsavvy*"]
+
+[tool.setuptools.package-data]
+slipsavvy = []

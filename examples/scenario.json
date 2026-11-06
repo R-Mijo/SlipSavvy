@@ -1,0 +1,8 @@
+{
+  "events": [
+    {"event_id": "A", "game_id": "GROUP-1", "name": "Synthetic A", "american_odds": 100, "fair_prob_override": "0.5", "evidence_tier": 3},
+    {"event_id": "B", "game_id": "GROUP-1", "name": "Synthetic B", "american_odds": 100, "fair_prob_override": "0.5", "evidence_tier": 3}
+  ],
+  "tickets": [{"ticket_id": "T1", "leg_ids": ["A"], "stake": "10"}],
+  "target_gross": "20"
+}
