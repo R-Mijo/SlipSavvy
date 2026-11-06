@@ -19,6 +19,8 @@ The local app now starts with the selection, American odds and stake. It uses â€
 
 The hosted product page introduces the product and provides an interactive payout preview. The full Python simulations run in the local app. Native iPhone/Android apps remain in development.
 
+The local assistant also accepts an optional opposing American price for a complete two-outcome market. It proportionally removes the supplied market margin unless you provide your own probability estimate. Both outcomes must belong to the same market and time. A one-sided odds-only scenario leaves expected net unavailable; its price-derived hit score is not a forecast. See the [quantitative methods](docs/QUANTITATIVE_METHODS.md) for the assumptions and a worked example.
+
 See [comparison with established quantitative methods](docs/QUANTITATIVE_METHODS.md). No access to private syndicate models or equivalent profitability is claimed.
 
 ## Native phone preview

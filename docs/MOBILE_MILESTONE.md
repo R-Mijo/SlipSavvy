@@ -1,5 +1,13 @@
 # Native manual-entry milestone
 
+## Combined source check — November 6, 2026
+
+The phone branch now incorporates merged main `414dbe4c0023572347d79cf7a43c78079df6c019`, including the Python assistant's nullable price-only expected net and optional complete two-way prices. The README retains both the math-fix explanation and phone-preview section. The mobile implementation itself is unchanged and still leaves unknown probabilities unknown; it does not expose opposing-price entry or invoke the Python engine. Those capabilities require explicit mobile integration.
+
+On the combined source, all 40 Python tests and all 19 mobile unit tests passed, along with TypeScript and the exported web interaction check. Current platform-export results are recorded in the accompanying pull request's GitHub workflow. This verifies compatibility of the source changes, not native device execution or visual layout.
+
+The next product milestone is a compatible installable development build on one physical iPhone and Android. After basic usability, prioritize complete two-way price input with clear margin assumptions, then screenshot suggestions requiring confirmation. Full scenario-analysis integration and licensed live research remain separate subsequent work. Billing follows demonstrated usefulness and a resolved distribution/payment path.
+
 Prepared November 6, 2026. Implementation base: `afb5a5bf923a7fd45d8bd8d6c716f2b115d569ae` on `R-Mijo/SlipSavvy`. GitHub main, open issues and open pull requests were inspected before work; main matched the handoff and no open work was found. Other products, final names, licenses and Sites are outside this change.
 
 ## Deliverable
