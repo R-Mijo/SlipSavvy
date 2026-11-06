@@ -1,5 +1,22 @@
 # Gemini Argon findings: independent verification
 
+## Native odds-browser review — November 6, 2026
+
+The user supplied Gemini Argon's written review of PR #1 at `1404ec4c790f158f9b7cecf3b423ecf91945518a`. Independent reproduction used current branch head `375e36a17faeb30a75a9725850c6ca75d85762c5`, whose intervening branding change left the affected odds behavior unchanged. Gemini's findings arrived in chat; they were not already published as a GitHub review or code commit.
+
+| Finding | Independent reproduction | Resolution |
+| --- | --- | --- |
+| A price edit can retain a hidden quote and revert on a later edit; changing only the user's win estimate loses feed provenance | Reproduced with a leaked-quote unit input and the actual exported app. Edited +150 reverted to -110 after reopening; an assumption-only edit changed the source to unverified. | Drafts now copy only editable fields, manual review clears quote metadata, and quote-detail edits detach the feed and get a manual ID. Assumption-only edits keep feed identity, attribution and freshness checks. Review, confirmation and calculation all recheck freshness. |
+| Market/refresh changes reset the selected game; quote buttons remain after an expired-line error | Reproduced in the exported app. Spread selection required selecting the same game again, and the expired button remained after an error. | Retain the game across market/refresh changes while returned quotes contain its ID. Clear it on sport change or removal from the results. Hide games and quotes while an error is shown. |
+| Upstream clock skew, zero total/signed-zero spread formatting, and slicing before event filtering | Reproduced in server regressions. A 30-second-future update was omitted, Over 0 was accepted, and 100 started/wrong-sport entries hid a later valid event. | Apply the same 60-second future tolerance on fresh and cached quotes, reject nonpositive totals, normalize zero spreads to +0, and cap 100 eligible upcoming events after filtering. |
+| Provider IDs and mixed manual/feed names are not consistently excluded as same-game selections | Reproduced: changed display names for one provider event and a feed/manual pair without the ID suffix both produced a combination. | Compare provider IDs when both picks carry quotes; otherwise compare normalized base names, removing a known suffix on either side. Distinct provider IDs with identical matchup names remain distinct. Manual aliases remain a documented limitation. |
+
+Gemini's suggested fresh manual ID needed an additional safeguard: blindly appending the new ID would leave the original entry in the list or fail at eight selections. The editor now tracks the original replacement ID, and `replacePick` replaces that slot while rejecting collisions. Both unit and exported-app checks cover the capacity case.
+
+New targeted regressions failed against the unchanged implementation before source fixes. Final verification: **49 Python tests, 28 mobile unit tests, seven exported-web interaction scenarios, TypeScript and all-platform Expo exports**. Fixtures are explicitly synthetic; no provider API credits or credentials are needed. The provider-key isolation and UTC-day quota design are unchanged. Hosting, durable production metering/authentication, new phone builds and physical-device verification remain pending.
+
+---
+
 November 6, 2026. Reviewed baseline: `afb5a5bf923a7fd45d8bd8d6c716f2b115d569ae` on `R-Mijo/SlipSavvy`. Every file in the clean verification source matched its GitHub blob SHA before edits. Main still matched this baseline. The separate native manual-entry work is in PR #1 at `ad9de928183d2c75a05754ae4a85f11c11525e8a`; this change neither replaces that branch nor claims it was reviewed by Gemini.
 
 The user supplied Gemini's written findings. The note said Gemini had not pushed changes. No automatic cross-chat synchronization or independent access to Gemini's environment is assumed. Only affected SlipSavvy and Scrubbee code was reviewed; completed four-project setup and naming reviews were not repeated.

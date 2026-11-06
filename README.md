@@ -1,12 +1,14 @@
-![Product banner](docs/assets/banner.svg)
+![SlipSavvy](docs/assets/banner.svg)
 
 # SlipSavvy
+
+Brand assets and usage: [SlipSavvy visual identity](brand/README.md).
 
 **Check the math behind your bet slip.**
 
 SlipSavvy is a local ticket assistant and Python library for scenario probabilities, payout calculations and portfolio risk. Optional weather retrieval makes an explicit outbound request. It moves arithmetic and bounded searches out of model conversations and into reproducible code.
 
-**0.3.1 | Python 3.11+ | Apache-2.0 | No third-party runtime dependencies**
+**0.3.1 | Python 3.11+ | Apache-2.0 | Python engine: no third-party runtime dependencies**
 
 ## In plain English
 
@@ -22,6 +24,12 @@ The hosted product page introduces the product and provides an interactive payou
 The local assistant also accepts an optional opposing American price for a complete two-outcome market. It proportionally removes the supplied market margin unless you provide your own probability estimate. Both outcomes must belong to the same market and time. A one-sided odds-only scenario leaves expected net unavailable; its price-derived hit score is not a forecast. See the [quantitative methods](docs/QUANTITATIVE_METHODS.md) for the assumptions and a worked example.
 
 See [comparison with established quantitative methods](docs/QUANTITATIVE_METHODS.md). No access to private syndicate models or equivalent profitability is claimed.
+
+## Native phone preview
+
+The [iPhone/Android development preview](mobile/README.md) now has a manual selection → review → confirm → payout flow, plus an education tab. It uses exact fractional payout math and keeps user-supplied win estimates separate from price thresholds. Independent combinations require explicit opt-in; same-game combinations are excluded by the entered event names. Entries stay in memory for the session.
+
+This preview does not include screenshot recognition, live feeds, the Python simulations, billing, signed phone binaries or store approval. Platform bundle compilation and web interaction checks are separate from physical-device testing. See the [milestone and next release gates](docs/MOBILE_MILESTONE.md).
 
 ## Ticket assistant and 100,000-run simulations
 
