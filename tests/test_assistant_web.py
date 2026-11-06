@@ -36,6 +36,21 @@ class AssistantWebTests(unittest.TestCase):
         for h in [{'X-SlipSavvy-Token':''},{'Host':'evil.invalid'},{'Origin':'https://evil.invalid'}]:
             with self.assertRaises(urllib.error.HTTPError) as caught:self.request('/api/simulate',{},**h)
             self.assertEqual(caught.exception.code,403)
+    def test_price_only_expected_net_is_unavailable_in_json_response(self):
+        d={'ticket':{'use_price_implied_probabilities':True,'legs':[
+            {'id':'a','american_odds':-110}]},'trials':1000}
+        with self.request('/api/simulate',d) as response:
+            r=json.load(response)
+        self.assertIsNone(r['expected_net_under_model'])
+        self.assertIn('circular zero',r['bookmaker_margin_note'])
+    def test_two_way_prices_pass_through_web_route(self):
+        d={'ticket':{'stake':'10','assume_conditional_independence':True,'legs':[
+            {'id':str(i),'american_odds':-110,'opposing_american_odds':-110}
+            for i in range(2)]},'trials':1000}
+        with self.request('/api/simulate',d) as response:
+            r=json.load(response)
+        self.assertEqual(r['analytic_model_win_percent'],25)
+        self.assertAlmostEqual(r['expected_net_under_model'],-0.8884297520661157)
     def test_bad_payload_rejected(self):
         with self.assertRaises(urllib.error.HTTPError) as caught:self.request('/api/simulate',[])
         self.assertEqual(caught.exception.code,400)
