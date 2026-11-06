@@ -4,7 +4,7 @@
 
 SlipSavvy is an offline Python library for scenario probabilities, payout calculations and portfolio risk. It moves arithmetic and bounded searches out of model conversations and into reproducible code.
 
-**0.2.0 · Python 3.11+ · Apache-2.0 · No third-party dependencies**
+**0.2.0 | Python 3.11+ | Apache-2.0 | No third-party runtime dependencies**
 
 ## Run it
 
