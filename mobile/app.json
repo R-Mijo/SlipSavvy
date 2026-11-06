@@ -1,0 +1,16 @@
+{
+  "expo": {
+    "name": "SlipSavvy",
+    "slug": "slipsavvy",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "slipsavvy",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.rmijo.slipsavvy" },
+    "android": {
+      "package": "com.rmijo.slipsavvy",
+      "blockedPermissions": ["android.permission.RECORD_AUDIO", "android.permission.CAMERA"]
+    },
+    "web": { "name": "SlipSavvy app preview", "output": "single" }
+  }
+}

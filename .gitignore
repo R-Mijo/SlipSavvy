@@ -7,3 +7,7 @@ dist/
 results/
 *.restore-*.json
 scrubbee-restore-*.json
+node_modules/
+.expo/
+mobile/android/
+mobile/ios/

@@ -1,0 +1,16 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { american, compare, extractOddsCandidates, importPicks, money, ratio, validatePick, type Pick } from '../src/math';
+const pick=(id:string,event=id,odds='+100',fairPercent='50'):Pick=>({id,label:'Synthetic '+id,event,odds,fairPercent,source:'Synthetic example',sourceUrl:'',capturedAt:'2026-11-05T12:00:00Z',kind:'example',confirmed:true});
+test('American prices use exact fractions',()=>{assert.deepEqual(american('-110'),ratio(21n,11n));assert.deepEqual(american('+150'),ratio(5n,2n));});
+test('Two 50/50 independent even-money legs have 25% win chance',()=>{const r=compare([pick('A'),pick('B')],'10',true).find(r=>r.legs===2)!;assert.equal(r.estimatedChance,'25.00%');assert.equal(r.gross,'$40.00');assert.equal(r.expectedNet,'$0.00');});
+test('No independence consent means singles only',()=>assert.equal(compare([pick('A'),pick('B')],'10',false).length,2));
+test('Same-event selections are excluded from parlays',()=>assert.equal(compare([pick('A','same'),pick('B',' SAME ')],'10',true).length,2));
+test('Missing fair estimates never become forecasts',()=>{const r=compare([pick('A','A','-110','')],'10',false)[0];assert.equal(r.estimatedChance,null);assert.equal(r.expectedNet,null);assert.equal(r.breakEven,'52.38%');});
+test('Stake and invalid prices reject',()=>{for(const s of ['0','-1','NaN','10000.01'])assert.throws(()=>compare([pick('A')],s,false));for(const o of ['+99','0','-50','Infinity','-110.2'])assert.throws(()=>american(o));});
+test('Non-finite and invalid fair chances reject',()=>{for(const p of ['101','NaN','-1'])assert.throws(()=>validatePick(pick('A','A','+100',p)));});
+test('Unreviewed screenshots reject',()=>assert.throws(()=>validatePick({...pick('A'),kind:'screenshot',confirmed:false})));
+test('OCR is bounded and preserves unconfirmed labels',()=>{assert.deepEqual(extractOddsCandidates('Example selection -110\nAccount 0042\nOther +150'),[{label:'Example selection',odds:'-110'},{label:'Other',odds:'+150'}]);assert.throws(()=>extractOddsCandidates('x'.repeat(100001)));});
+test('Import validates source URLs and unique IDs',()=>{assert.throws(()=>importPicks(JSON.stringify({format:'slipsavvy-picks-v1',picks:[pick('A'),pick('A')]})));assert.throws(()=>validatePick({...pick('A'),sourceUrl:'javascript:alert(1)'}));});
+test('Display rounds while fractions retain exact thresholds',()=>{assert.equal(money(ratio(29999n,100n)),'$299.99');assert.equal(money(ratio(-1n,3n)),'-$0.33');});
+test('Eight picks stay within bounded comparison size',()=>assert.equal(compare(Array.from({length:8},(_,i)=>pick(''+i)),'10',true).length,92));

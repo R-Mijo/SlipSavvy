@@ -6,7 +6,7 @@
 
 SlipSavvy is a local ticket assistant and Python library for scenario probabilities, payout calculations and portfolio risk. Optional weather retrieval makes an explicit outbound request. It moves arithmetic and bounded searches out of model conversations and into reproducible code.
 
-**0.3.1 | Python 3.11+ | Apache-2.0 | No third-party runtime dependencies**
+**0.3.1 | Python 3.11+ | Apache-2.0 | Python engine: no third-party runtime dependencies**
 
 ## In plain English
 
@@ -20,6 +20,12 @@ The local app now starts with the selection, American odds and stake. It uses �
 The hosted product page introduces the product and provides an interactive payout preview. The full Python simulations run in the local app. Native iPhone/Android apps remain in development.
 
 See [comparison with established quantitative methods](docs/QUANTITATIVE_METHODS.md). No access to private syndicate models or equivalent profitability is claimed.
+
+## Native phone preview
+
+The [iPhone/Android development preview](mobile/README.md) now has a manual selection → review → confirm → payout flow, plus an education tab. It uses exact fractional payout math and keeps user-supplied win estimates separate from price thresholds. Independent combinations require explicit opt-in; same-game combinations are excluded by the entered event names. Entries stay in memory for the session.
+
+This preview does not include screenshot recognition, live feeds, the Python simulations, billing, signed phone binaries or store approval. Platform bundle compilation and web interaction checks are separate from physical-device testing. See the [milestone and next release gates](docs/MOBILE_MILESTONE.md).
 
 ## Ticket assistant and 100,000-run simulations
 
