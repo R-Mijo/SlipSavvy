@@ -6,6 +6,14 @@ def ticket(p='0.6', n=2):
         {'id':str(i),'american_odds':100,'win_probability':p} for i in range(n)]}
 
 class AssistantTests(unittest.TestCase):
+    def test_odds_only_starting_point_is_opt_in_and_labeled(self):
+        d=ticket();d['use_price_implied_probabilities']=True
+        for leg in d['legs']:del leg['win_probability']
+        r=simulate(d,1000)
+        self.assertEqual(r['analytic_model_win_percent'],25)
+        self.assertIn('not a prediction',r['score_label'])
+        self.assertIn('Price-implied',r['legs'][0]['probability_basis'])
+        self.assertEqual(r['expected_net_under_model'],0)
     def test_100000_runs_match_exact_probability(self):
         r=simulate(ticket(),100000,42)
         self.assertEqual(r['trials'],100000)

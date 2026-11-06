@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slipsavvy"
-version = "0.3.0"
+version = "0.3.1"
 description = "Exact scenario probabilities, payout modeling, bounded allocation search and adversarial audits"
 readme = "README.md"
 requires-python = ">=3.11"

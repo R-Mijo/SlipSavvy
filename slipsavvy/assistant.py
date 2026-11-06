@@ -66,7 +66,8 @@ def simulate(data, trials=100000, seed=42):
     if any(not isinstance(i,str) or not i.strip() or len(i)>100 for i in ids) or len(set(ids)) != len(ids):
         raise ValueError('Leg IDs must be unique nonempty strings')
     prices = [odds_price(l.get('american_odds')) for l in legs]
-    base_probs = [fraction(l.get('win_probability'), 'leg probability') for l in legs]
+    price_based = [l.get('win_probability') is None and data.get('use_price_implied_probabilities') is True for l in legs]
+    base_probs = [1/prices[i] if price_based[i] else fraction(l.get('win_probability'), 'leg probability') for i,l in enumerate(legs)]
     scenarios = data.get('game_scripts')
     if scenarios is None:
         scenarios = [{'name':'Base assumptions', 'weight':'1', 'probabilities':dict(zip(ids,base_probs))}]
@@ -111,6 +112,7 @@ def simulate(data, trials=100000, seed=42):
     for i, leg in enumerate(legs):
         context = {k:leg.get(k) for k in ('source','captured_at','weather','game_script','rationale','event')}
         leg_reports.append({'id':ids[i], 'name':str(leg.get('name',ids[i]))[:300],
+            'probability_basis':'User-supplied game-script scenario' if data.get('game_scripts') is not None else ('Price-implied starting point; includes bookmaker margin, not a forecast' if price_based[i] else 'User-supplied estimate; unverified'),
             'american_odds':float(fraction(leg['american_odds'],'odds',-100000,100000)),
             'model_estimated_win_percent':float(100*marginals[i]),
             'estimated_hit_score_out_of_100':round(float(100*marginals[i]),1),
@@ -123,7 +125,7 @@ def simulate(data, trials=100000, seed=42):
         'simulation_sampling_interval_95_percent':[100*x for x in wilson(hits,trials)],
         'analytic_model_win_percent':float(100*analytic),
         'estimated_hit_score_out_of_100':round(float(100*analytic),1),
-        'score_label':'Model-estimated hit probability /100. Uncalibrated; not confidence in the model or data.',
+        'score_label':('Odds-based scenario /100; not a prediction or confidence rating.' if any(price_based) and data.get('game_scripts') is None else 'Model-estimated hit probability /100. Uncalibrated; not confidence in the model or data.'),
         'gross_if_win':float(stake*price),'net_if_win':float(stake*(price-1)),
         'loss_if_lose':float(stake),'break_even_percent':float(100/price),
         'expected_net_under_model':float(stake*(analytic*price-1)),

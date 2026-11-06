@@ -1,5 +1,9 @@
 # SlipSavvy: product update — November 6, 2026
 
+## Latest usability update
+
+The retail flow now asks for a bet, odds and stake. Optional price-implied scenarios do the math without asking beginners to invent forecasts. The website has a small working payout preview; the full Python app runs locally. See [quantitative comparison](QUANTITATIVE_METHODS.md).
+
 ## What this means to a customer
 
 SlipSavvy is a ticket-research and math assistant. It explains each leg, compares ticket probabilities and payouts, and runs transparent scenarios. For example, it shows why six independent 60% legs have only a 4.6656% chance of all winning. Its current probabilities are supplied by the user or scenario author, not produced by a validated sports prediction model.
