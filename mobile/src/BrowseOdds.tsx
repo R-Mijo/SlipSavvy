@@ -8,7 +8,7 @@ export default function BrowseOdds({onChoose}:{onChoose:(q:Quote)=>void}) {
   const [loading,setLoading]=useState(false);const [error,setError]=useState('');const [refresh,setRefresh]=useState(0);
   useEffect(()=>{
     let active=true;const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),90000);
-    setLoading(true);setError('');setQuotes([]);setEvent('');
+    setLoading(true);setError('');setQuotes([]);
     (async()=>{try{
       if(!sport){const data=await oddsRequest('/api/sports',controller.signal);
         if(!Array.isArray(data.sports))throw Error('Game data is unavailable.');
@@ -16,7 +16,7 @@ export default function BrowseOdds({onChoose}:{onChoose:(q:Quote)=>void}) {
       }else{const data=await oddsRequest(`/api/odds?sport=${encodeURIComponent(sport)}&market=${market}`,controller.signal);
         if(!Array.isArray(data.quotes))throw Error('Game data is unavailable.');
         const valid=data.quotes.filter((q:Quote)=>{try{checkQuote(q);return true;}catch{return false;}});
-        if(active)setQuotes(valid);
+        if(active){setQuotes(valid);setEvent(current=>valid.some((q:Quote)=>q.eventId===current)?current:'');}
       }
     }catch(e){if(active)setError(controller.signal.aborted?'Game data took too long. Try refresh.':(e as Error).message);}
     finally{clearTimeout(timer);if(active)setLoading(false);}})();
@@ -29,14 +29,14 @@ export default function BrowseOdds({onChoose}:{onChoose:(q:Quote)=>void}) {
   return <View style={s.panel} testID="browse-odds">
     <Text style={s.title}>Choose a sport, game and line</Text>
     <Text style={s.note}>Upcoming games · Prices can change. Confirm with your sportsbook.</Text>
-    <View style={s.row}>{sports.map(v=>button(v.title,()=>setSport(v.key),'sport-'+v.key,sport===v.key))}</View>
+    <View style={s.row}>{sports.map(v=>button(v.title,()=>{if(v.key!==sport){setSport(v.key);setEvent('');}},'sport-'+v.key,sport===v.key))}</View>
     {sport?<View style={s.row}>{([['h2h','Moneyline'],['spreads','Spread'],['totals','Total']] as const)
       .map(([key,label])=>button(label,()=>setMarket(key),'market-'+key,market===key))}</View>:null}
     {loading?<Text style={s.note}>Loading games…</Text>:null}
     {error?<Text style={s.error} accessibilityRole="alert">{error}</Text>:null}
     {!loading&&!error&&sport&&!games.length?<Text style={s.note}>No current pregame lines are available for this selection.</Text>:null}
     {!loading&&!error&&sport?games.map(q=>button(q.event+' · '+new Date(q.startAt).toLocaleString(),()=>setEvent(q.eventId),'game-'+q.eventId,event===q.eventId)):null}
-    {!loading&&event?quotes.filter(q=>q.eventId===event).map(q=><View key={q.id} style={s.quote}>
+    {!loading&&!error&&event?quotes.filter(q=>q.eventId===event).map(q=><View key={q.id} style={s.quote}>
       {button(`${q.label} · ${Number(q.americanOdds)>0?'+':''}${q.americanOdds} · ${q.bookmaker}`,()=>{
         try{checkQuote(q);onChoose(q);}catch(e){setError((e as Error).message);}
       },'quote-'+q.id)}

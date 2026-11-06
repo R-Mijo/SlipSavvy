@@ -6,7 +6,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { compare, type Comparison, type Pick } from './src/math';
-import { blankDraft, replacePick, reviewedPick, type Draft } from './src/review';
+import { blankDraft, pickDraft, replacePick, reviewedPick, type Draft } from './src/review';
 import BrowseOdds from './src/BrowseOdds';
 import { checkQuote, quotePick, type Quote } from './src/odds';
 
@@ -15,7 +15,11 @@ const c = {
   text: '#F1F5F9', muted: '#AFBDC9', lime: '#C9F84A', ink: '#162005', error: '#FFB4AC',
 };
 let nextId = 0;
-type Editor = { draft: Draft; id: string; step: 'entry' | 'review'; quote?: Quote };
+type Editor = { draft: Draft; id: string; replaceId?: string; step: 'entry' | 'review'; quote?: Quote };
+const freshManualId = () => `manual-${Date.now()}-${++nextId}`;
+const editorPick = (editor: Editor) => editor.quote
+  ? quotePick(editor.quote, Date.now(), editor.draft.fairPercent)
+  : reviewedPick(editor.draft, editor.id, new Date().toISOString());
 
 function Button({ title, onPress, secondary = false, disabled = false, testID }: {
   title: string; onPress: () => void; secondary?: boolean; disabled?: boolean; testID?: string;
@@ -87,26 +91,32 @@ export default function App() {
   const invalidate = () => { setResults(null); setError(''); };
   const openEditor = (pick?: Pick) => {
     invalidate();
-    setEditor({ draft: pick ? { ...pick } : blankDraft(),
-      id: pick?.id ?? `manual-${Date.now()}-${++nextId}`, step: 'entry', quote:pick?.quote });
+    setEditor({ draft: pick ? pickDraft(pick) : blankDraft(),
+      id: pick?.id ?? freshManualId(), replaceId: pick?.id, step: 'entry',
+      quote: pick?.kind === 'feed' ? pick.quote : undefined });
   };
   const change = (key: keyof Draft, value: string) => {
-    if (editor) setEditor({ ...editor, quote:undefined, draft: { ...editor.draft,
-      ...(editor.quote?{source:'Edited entry (unverified)',sourceUrl:''}:{}), [key]: value }, step: 'entry' });
+    if (editor) {
+      const detachQuote = editor.quote && key !== 'fairPercent';
+      setEditor({ ...editor, id: detachQuote ? freshManualId() : editor.id,
+        quote: detachQuote ? undefined : editor.quote,
+        draft: { ...editor.draft,
+          ...(detachQuote ? { source: 'Edited entry (unverified)', sourceUrl: '' } : {}), [key]: value }, step: 'entry' });
+    }
     invalidate();
   };
   const review = () => {
     if (!editor) return;
     try {
-      reviewedPick(editor.draft, editor.id, new Date().toISOString());
+      editorPick(editor);
       setError(''); setEditor({ ...editor, step: 'review' });
     } catch (e) { setError((e as Error).message); }
   };
   const confirm = () => {
     if (!editor || editor.step !== 'review') return;
     try {
-      const pick = editor.quote ? quotePick(editor.quote) : reviewedPick(editor.draft, editor.id, new Date().toISOString());
-      setPicks(replacePick(picks, pick)); setEditor(null); invalidate();
+      const pick = editorPick(editor);
+      setPicks(replacePick(picks, pick, editor.replaceId)); setEditor(null); invalidate();
     } catch (e) { setError((e as Error).message); }
   };
   const calculate = () => {
@@ -171,7 +181,7 @@ export default function App() {
             </>}
             <Button title="Cancel changes" secondary testID="cancel" onPress={() => { setEditor(null); setError(''); }} />
           </View> : <>
-            <BrowseOdds onChoose={quote=>{const p=quotePick(quote);invalidate();setEditor({draft:{...p},id:p.id,step:'review',quote});}} />
+            <BrowseOdds onChoose={quote=>{const p=quotePick(quote);invalidate();setEditor({draft:pickDraft(p),id:p.id,step:'review',quote});}} />
             <View style={styles.row}>
               <Text style={styles.cardTitle}>Your selections</Text>
               <Text style={styles.muted}>{picks.length}/8</Text>

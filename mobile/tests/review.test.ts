@@ -62,3 +62,20 @@ test('Same event normalization blocks a misleading independence product', () => 
   const b = reviewedPick({ ...draft(), event: ' away at home ' }, '2', time);
   assert.equal(compare([a, b], '10', true).length, 2);
 });
+
+test('Manual review discards feed metadata accidentally copied into a draft', () => {
+  const leaked = { ...draft(), quote: { id: 'old-feed-quote' } };
+  const pick = reviewedPick(leaked, 'edited-manual', time);
+  assert.equal(pick.kind, 'manual');
+  assert.equal(pick.quote, undefined);
+});
+
+test('Changing an edited selection ID replaces its original slot even at capacity', () => {
+  const picks = Array.from({ length: 8 }, (_, i) => reviewedPick(draft(), String(i), time));
+  const edited = reviewedPick({ ...draft(), odds: '+150' }, 'new-manual', time);
+  const result = replacePick(picks, edited, '3');
+  assert.equal(result.length, 8);
+  assert.equal(result[3].id, 'new-manual');
+  assert.equal(result[3].odds, '+150');
+  assert.throws(() => replacePick(picks, { ...edited, id: '4' }, '3'));
+});

@@ -45,6 +45,19 @@ export function validatePick(p: Pick): Pick {
   return { ...p, label: p.label.trim(), event: p.event.trim(), source: p.source.trim(), odds: p.odds.trim(), fairPercent: p.fairPercent.trim() };
 }
 export type Comparison = { ids: string[]; label: string; legs: number; gross: string; net: string; breakEven: string; estimatedChance: string | null; expectedNet: string | null; multiplier: string };
+function sameEvent(a: Pick, b: Pick): boolean {
+  if (a.quote && b.quote) return a.quote.eventId === b.quote.eventId;
+  const normalize = (value: string) => value.trim().toLowerCase().replace(/\s+/g, ' ');
+  const baseName = (pick: Pick) => {
+    let name = normalize(pick.event);
+    for (const id of [a.quote?.eventId, b.quote?.eventId]) {
+      const suffix = id ? ` (${normalize(id)})` : '';
+      if (suffix && name.endsWith(suffix)) name = name.slice(0, -suffix.length).trim();
+    }
+    return name;
+  };
+  return baseName(a) === baseName(b);
+}
 export function compare(picks: Pick[], stakeText: string, independent: boolean): Comparison[] {
   if (!Array.isArray(picks) || picks.length > 8) throw Error('Compare up to eight selections at once.');
   picks = picks.map(validatePick);
@@ -58,7 +71,7 @@ export function compare(picks: Pick[], stakeText: string, independent: boolean):
       for (let k=j+1;k<picks.length;k++) groups.push([picks[i],picks[j],picks[k]]);
     }
   }
-  return groups.filter(group => new Set(group.map(p => p.event.trim().toLowerCase().replace(/\s+/g,' '))).size === group.length).map(group => {
+  return groups.filter(group => group.every((pick, i) => group.slice(i + 1).every(other => !sameEvent(pick, other)))).map(group => {
     const price = group.reduce((a,p) => mul(a,american(p.odds)), ratio(1n));
     const gross = mul(stake,price);
     const fair = group.every(p => p.fairPercent.trim()) ? group.reduce((a,p) => mul(a,mul(decimal(p.fairPercent),ratio(1n,100n))),ratio(1n)) : null;

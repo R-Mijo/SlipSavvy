@@ -14,6 +14,7 @@ SPORTS = {'americanfootball_nfl', 'americanfootball_ncaaf', 'basketball_nba',
 MARKETS = {'h2h', 'spreads', 'totals'}
 BOOKS = {'fanduel', 'draftkings'}
 MAX_AGE = 900
+MAX_CLOCK_SKEW = 60
 
 def stamp(value):
     if not isinstance(value, str): raise ValueError('Timestamp required')
@@ -23,27 +24,30 @@ def stamp(value):
 
 def normalize(events, sport, market, now):
     if not isinstance(events, list): raise ValueError('Invalid provider response')
-    quotes=[]
-    for event in events[:100]:
+    quotes=[]; upcoming=0
+    for event in events:
         try:
             event_id=event['id']; start=event['commence_time']
             home=event['home_team']; away=event['away_team']
             if not all(isinstance(x,str) and 0<len(x)<=200 for x in (event_id,home,away)): continue
             if event.get('sport_key')!=sport or stamp(start)<=now: continue
+            if upcoming>=100: break
+            upcoming+=1
             for book in event.get('bookmakers',[]):
                 if book.get('key') not in BOOKS: continue
                 for m in book.get('markets',[]):
                     if m.get('key')!=market: continue
                     updated=m.get('last_update',book.get('last_update'))
                     age=now-stamp(updated)
-                    if not 0<=age<=MAX_AGE: continue
+                    if not -MAX_CLOCK_SKEW<=age<=MAX_AGE: continue
                     for outcome in m.get('outcomes',[]):
                         price=outcome.get('price'); label=outcome.get('name'); point=outcome.get('point')
                         if type(price) is not int or not 100<=abs(price)<=100000: continue
                         if not isinstance(label,str) or not 0<len(label)<=200: continue
                         if market in {'spreads','totals'}:
                             if type(point) not in (int,float) or not -1000<=point<=1000: continue
-                            if market=='totals' and (point<0 or label not in {'Over','Under'}): continue
+                            if market=='totals' and (point<=0 or label not in {'Over','Under'}): continue
+                            point=0 if point==0 else point
                             label=f'{label} {point:+g}' if market=='spreads' else f'{label} {point:g}'
                         quotes.append({'id':f'{event_id}:{book["key"]}:{market}:{label}',
                             'eventId':event_id,'event':f'{away} at {home}', 'startAt':start,
@@ -88,7 +92,7 @@ class OddsService:
                 if sport is None:return result
                 # Filter again as quotes age or a game starts while cached.
                 return dict(result,quotes=[q for q in result['quotes']
-                    if 0<=now-stamp(q['updatedAt'])<=MAX_AGE and stamp(q['startAt'])>now])
+                    if -MAX_CLOCK_SKEW<=now-stamp(q['updatedAt'])<=MAX_AGE and stamp(q['startAt'])>now])
             if sport is None:
                 data=self.fetch('sports',{})
                 if not isinstance(data,list):raise RuntimeError('Invalid sport list')

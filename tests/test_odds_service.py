@@ -50,3 +50,29 @@ class OddsTests(unittest.TestCase):
             body=b''.join(application({'PATH_INFO':'/api/odds','REQUEST_METHOD':'GET','HTTP_AUTHORIZATION':'Bearer test-access','QUERY_STRING':'sport=invalid'},lambda status,headers:statuses.append(status)))
             self.assertEqual(statuses[-1],'400 Bad Request')
             self.assertNotIn(b'apiKey',body)
+
+    def test_upstream_clock_skew_is_consistent_on_initial_and_cached_reads(self):
+        for seconds, count in [(30,1),(60,1),(61,0)]:
+            d=events()
+            d[0]['bookmakers'][0]['last_update']=datetime.fromtimestamp(NOW+seconds,timezone.utc).isoformat()
+            s=OddsService('not-a-real-key',fetch=lambda *args:d,clock=lambda:NOW)
+            self.assertEqual(len(s.get('basketball_nba')['quotes']),count,seconds)
+            self.assertEqual(len(s.get('basketball_nba')['quotes']),count,seconds)
+
+    def test_zero_totals_are_omitted_and_signed_zero_spreads_are_normalized(self):
+        for point in (0,-0.0):
+            d=events('totals')
+            d[0]['bookmakers'][0]['markets'][0]['outcomes'][0].update(name='Over',point=point)
+            self.assertEqual(normalize(d,'basketball_nba','totals',NOW),[])
+            d=events('spreads')
+            d[0]['bookmakers'][0]['markets'][0]['outcomes'][0]['point']=point
+            self.assertEqual(normalize(d,'basketball_nba','spreads',NOW)[0]['label'],'Synthetic Home +0')
+
+    def test_event_limit_applies_after_filtering_started_or_wrong_sport_events(self):
+        started=deepcopy(events()[0]);started['commence_time']='2026-11-06T19:00:00Z'
+        wrong_sport=deepcopy(events()[0]);wrong_sport['sport_key']='baseball_mlb'
+        for excluded in (started,wrong_sport):
+            d=[deepcopy(excluded) for _ in range(100)]+events()
+            self.assertEqual(len(normalize(d,'basketball_nba','h2h',NOW)),1)
+        d=[dict(deepcopy(events()[0]),id=str(i)) for i in range(101)]
+        self.assertEqual(len(normalize(d,'basketball_nba','h2h',NOW)),100)
