@@ -1,8 +1,20 @@
 # Install SlipSavvy on a real phone
 
-This preview profile builds a standalone test app containing its JavaScript. Once installed, it does not need a local development server. It is separate from a development-client build and does not require installing Expo Go. No installable native binary has been produced or tested yet.
+This preview profile builds a standalone test app containing its JavaScript. Once installed, it does not need a local development server. It is separate from a development-client build and does not require installing Expo Go. An earlier Android APK was built and installed successfully; the newest odds browser and branding require another build. iPhone physical-device testing remains pending.
 
-## Before building
+## Existing project: update the branded preview
+
+The existing Expo project is already linked in `app.json` (`c89b20b7-c475-41c5-850f-a2b91da0d2b9`). Retain this identity and the current signing credentials. Do not repeat project creation for this update. Save or commit local configuration edits before updating the branch; do not discard unrelated changes. After updating, run `npm ci` and build the preview again:
+
+```powershell
+npx.cmd eas-cli build --platform android --profile preview
+```
+
+Install the new APK from the resulting EAS build page. Confirm the charcoal/lime S home-screen icon, launch screen and full SlipSavvy header. Native icon/splash changes need a rebuild; refreshing the old app is insufficient. The data browser additionally needs its hosted endpoint and preview access configured as described in `server/README.md`.
+
+Brand files and future store graphics are documented in [`brand/README.md`](../brand/README.md).
+
+## First-time setup reference
 
 Use Node 24 LTS, npm, Git and an Expo account. Work from the phone-preview branch while it is still unmerged:
 

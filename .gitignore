@@ -13,3 +13,4 @@ mobile/android/
 mobile/ios/
 .env
 .env.*
+.brand-tools/

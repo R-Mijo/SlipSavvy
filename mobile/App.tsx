@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet,
+  Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet,
   Switch, Text, TextInput, View, type TextInputProps,
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
@@ -120,7 +120,8 @@ export default function App() {
   return <SafeAreaProvider><SafeAreaView style={styles.safe}>
     <StatusBar style="light" />
     <View style={styles.brandRow}>
-      <Text style={styles.brand}>Slip<Text style={{ color: c.lime }}>Savvy</Text></Text>
+      <Image source={require('./assets/logo-horizontal.png')} accessibilityLabel="SlipSavvy"
+        accessible style={styles.brand} resizeMode="contain" />
       <Text style={styles.badge}>PHONE PREVIEW</Text>
     </View>
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -241,7 +242,7 @@ export default function App() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: c.bg }, flex: { flex: 1 },
   brandRow: { paddingHorizontal: 20, paddingVertical: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, borderBottomWidth: 1, borderColor: c.border },
-  brand: { color: c.text, fontSize: 24, fontWeight: '800', letterSpacing: -1 },
+  brand: { width: 180, height: 36, flexShrink: 1 },
   badge: { color: c.lime, fontSize: 10, letterSpacing: 1.1, fontWeight: '700' },
   content: { padding: 20, width: '100%', maxWidth: 720, alignSelf: 'center', paddingBottom: 36 },
   stack: { gap: 18 }, title: { color: c.text, fontSize: 30, lineHeight: 36, fontWeight: '800', letterSpacing: -0.8 },

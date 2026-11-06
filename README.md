@@ -1,6 +1,8 @@
-![Product banner](docs/assets/banner.svg)
+![SlipSavvy](docs/assets/banner.svg)
 
 # SlipSavvy
+
+Brand assets and usage: [SlipSavvy visual identity](brand/README.md).
 
 **Check the math behind your bet slip.**
 

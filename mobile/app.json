@@ -6,11 +6,25 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "scheme": "slipsavvy",
+    "icon": "./assets/icon.png",
+    "backgroundColor": "#0B1016",
+    "plugins": [["expo-splash-screen", {
+      "image": "./assets/splash-mark.png",
+      "backgroundColor": "#0B1016",
+      "imageWidth": 200,
+      "resizeMode": "contain"
+    }]],
     "ios": { "supportsTablet": true, "bundleIdentifier": "com.rmijo.slipsavvy" },
     "android": {
       "package": "com.rmijo.slipsavvy",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "monochromeImage": "./assets/adaptive-monochrome.png",
+        "backgroundColor": "#0B1016"
+      },
       "blockedPermissions": ["android.permission.RECORD_AUDIO", "android.permission.CAMERA"]
     },
-    "web": { "name": "SlipSavvy app preview", "output": "single" }
+    "web": { "name": "SlipSavvy app preview", "output": "single", "favicon": "./assets/favicon.png" },
+    "extra": { "eas": { "projectId": "c89b20b7-c475-41c5-850f-a2b91da0d2b9" } }
   }
 }
