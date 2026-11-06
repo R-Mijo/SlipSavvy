@@ -16,6 +16,7 @@ jobs:
     env:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
+      EXPO_PUBLIC_ODDS_API_URL: 'https://odds.example.test'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,3 +30,4 @@ jobs:
       - run: npx expo install --check
       - run: npm run export
       - run: node tests/ui.cjs
+      - run: node tests/odds-ui.cjs

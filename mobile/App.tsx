@@ -7,13 +7,15 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { compare, type Comparison, type Pick } from './src/math';
 import { blankDraft, replacePick, reviewedPick, type Draft } from './src/review';
+import BrowseOdds from './src/BrowseOdds';
+import { checkQuote, quotePick, type Quote } from './src/odds';
 
 const c = {
   bg: '#0B1016', panel: '#151E29', field: '#0E151E', border: '#344252',
   text: '#F1F5F9', muted: '#AFBDC9', lime: '#C9F84A', ink: '#162005', error: '#FFB4AC',
 };
 let nextId = 0;
-type Editor = { draft: Draft; id: string; step: 'entry' | 'review' };
+type Editor = { draft: Draft; id: string; step: 'entry' | 'review'; quote?: Quote };
 
 function Button({ title, onPress, secondary = false, disabled = false, testID }: {
   title: string; onPress: () => void; secondary?: boolean; disabled?: boolean; testID?: string;
@@ -86,10 +88,11 @@ export default function App() {
   const openEditor = (pick?: Pick) => {
     invalidate();
     setEditor({ draft: pick ? { ...pick } : blankDraft(),
-      id: pick?.id ?? `manual-${Date.now()}-${++nextId}`, step: 'entry' });
+      id: pick?.id ?? `manual-${Date.now()}-${++nextId}`, step: 'entry', quote:pick?.quote });
   };
   const change = (key: keyof Draft, value: string) => {
-    if (editor) setEditor({ ...editor, draft: { ...editor.draft, [key]: value }, step: 'entry' });
+    if (editor) setEditor({ ...editor, quote:undefined, draft: { ...editor.draft,
+      ...(editor.quote?{source:'Edited entry (unverified)',sourceUrl:''}:{}), [key]: value }, step: 'entry' });
     invalidate();
   };
   const review = () => {
@@ -102,13 +105,14 @@ export default function App() {
   const confirm = () => {
     if (!editor || editor.step !== 'review') return;
     try {
-      const pick = reviewedPick(editor.draft, editor.id, new Date().toISOString());
+      const pick = editor.quote ? quotePick(editor.quote) : reviewedPick(editor.draft, editor.id, new Date().toISOString());
       setPicks(replacePick(picks, pick)); setEditor(null); invalidate();
     } catch (e) { setError((e as Error).message); }
   };
   const calculate = () => {
     try {
       if (!picks.length) throw Error('Add and review a selection first.');
+      picks.forEach(p=>{if(p.kind==='feed'&&p.quote)checkQuote(p.quote);});
       setResults(compare(picks, stake, independent)); setError('');
     } catch (e) { setResults(null); setError((e as Error).message); }
   };
@@ -159,13 +163,14 @@ export default function App() {
               <Detail title="Your estimated chance" value={editor.draft.fairPercent.trim() ? `${editor.draft.fairPercent.trim()}% (assumed)` : 'Unknown — payout math only'} />
               <Detail title="Source" value={editor.draft.source.trim() || 'Manual entry (unverified)'} />
               {editor.draft.sourceUrl.trim() ? <Detail title="Reference" value={editor.draft.sourceUrl.trim()} /> : null}
-              <Text style={styles.body}>Check the selection, game and sign on the odds. This preview covers win-or-lose outcomes. It does not check live prices or account for pushes, voids or promotions.</Text>
+              <Text style={styles.body}>Check the selection, game and sign on the odds. This preview covers win-or-lose outcomes. Prices can change; verify with your sportsbook. Pushes, voids and promotions are excluded.</Text>
               <Button title="Confirm selection" testID="confirm" onPress={confirm} />
               <Button title="Edit details" secondary testID="back-to-edit"
                 onPress={() => { setEditor({ ...editor, step: 'entry' }); setError(''); }} />
             </>}
             <Button title="Cancel changes" secondary testID="cancel" onPress={() => { setEditor(null); setError(''); }} />
           </View> : <>
+            <BrowseOdds onChoose={quote=>{const p=quotePick(quote);invalidate();setEditor({draft:{...p},id:p.id,step:'review',quote});}} />
             <View style={styles.row}>
               <Text style={styles.cardTitle}>Your selections</Text>
               <Text style={styles.muted}>{picks.length}/8</Text>

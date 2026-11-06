@@ -2,6 +2,8 @@
 
 First working native input/review milestone for iPhone and Android. The same React Native interface also exports to web for automated interaction checks. This is a development preview, not a store release or a prediction service.
 
+The next revision adds a sport → upcoming game → sportsbook line browser backed by the [private-beta odds service](../server/README.md). It requires deployment and EAS preview environment configuration before live data is available on a phone. A chosen line opens the existing review step with its price, source and update time; it never invents a win estimate. The previous installed APK does not have this feature.
+
 For standalone installation on real phones, use [PHONE_TESTING.md](PHONE_TESTING.md) and the included `preview` build profile in `eas.json`. These builds include the app code and do not need a development server or Expo Go after installation. An Expo project and platform signing setup are still required; no installable build is supplied yet.
 
 ## Run

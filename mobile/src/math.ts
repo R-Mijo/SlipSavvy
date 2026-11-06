@@ -30,7 +30,8 @@ export function money(a: Ratio): string {
 }
 export type Pick = {
   id: string; label: string; event: string; odds: string; fairPercent: string;
-  source: string; sourceUrl: string; capturedAt: string; kind: 'manual' | 'screenshot' | 'example'; confirmed: boolean;
+  source: string; sourceUrl: string; capturedAt: string; kind: 'manual' | 'screenshot' | 'example' | 'feed'; confirmed: boolean;
+  quote?: import('./odds').Quote;
 };
 export function validatePick(p: Pick): Pick {
   if (!p || typeof p !== 'object' || !['id','label','event','source','sourceUrl','capturedAt','odds','fairPercent'].every(k => typeof (p as any)[k] === 'string')) throw Error('The pick is incomplete.');
@@ -40,7 +41,7 @@ export function validatePick(p: Pick): Pick {
   if (p.fairPercent.trim()) { const p1 = decimal(p.fairPercent); if (p1.n > p1.d * 100n) throw Error('Estimated chance must be between 0 and 100%.'); }
   if (p.sourceUrl && !/^https?:\/\/[^\s]+$/i.test(p.sourceUrl)) throw Error('Source links must start with https:// or http://.');
   if (!Number.isFinite(Date.parse(p.capturedAt))) throw Error('Add a valid capture date.');
-  if (!['manual','screenshot','example'].includes(p.kind) || p.confirmed !== true) throw Error('Review and confirm each pick before adding it.');
+  if (!['manual','screenshot','example','feed'].includes(p.kind) || p.confirmed !== true) throw Error('Review and confirm each pick before adding it.');
   return { ...p, label: p.label.trim(), event: p.event.trim(), source: p.source.trim(), odds: p.odds.trim(), fairPercent: p.fairPercent.trim() };
 }
 export type Comparison = { ids: string[]; label: string; legs: number; gross: string; net: string; breakEven: string; estimatedChance: string | null; expectedNet: string | null; multiplier: string };
