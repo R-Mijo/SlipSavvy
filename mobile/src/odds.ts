@@ -1,9 +1,10 @@
 import { american, validatePick, type Pick } from './math';
 export type Quote = { id:string; eventId:string; event:string; startAt:string; sport:string;
-  market:string; label:string; americanOdds:string; bookmaker:string; updatedAt:string; fetchedAt:string };
+  market:string; label:string; americanOdds:string; bookmaker:string; updatedAt:string; fetchedAt:string;
+  bookmakerKey?:string; homeTeam?:string; awayTeam?:string; outcome?:string; point?:number|null };
 export function checkQuote(q:Quote, now=Date.now()):void {
   if(!q||!['id','eventId','event','label','americanOdds','bookmaker','updatedAt','fetchedAt','startAt','sport','market']
-    .every(k=>typeof q[k as keyof Quote]==='string'&&q[k as keyof Quote].length>0&&q[k as keyof Quote].length<=600)) throw Error('This line is incomplete. Refresh the games.');
+    .every(k=>{const value=q[k as keyof Quote];return typeof value==='string'&&value.length>0&&value.length<=600;})) throw Error('This line is incomplete. Refresh the games.');
   const age=now-Date.parse(q.updatedAt);
   american(q.americanOdds);
   if(!Number.isFinite(age)||age < -60000||age>900000||!Number.isFinite(Date.parse(q.startAt))||
@@ -20,7 +21,7 @@ export async function oddsRequest(path:string,signal?:AbortSignal) {
   if(!base||!/^https:\/\//.test(base)) throw Error('Game data is not connected yet.');
   const response=await fetch(base.replace(/\/$/,'')+path,{signal,headers:{
     Authorization:'Bearer '+(process.env.EXPO_PUBLIC_ODDS_PREVIEW_TOKEN??'')}});
-  const data=await response.json();
-  if(!response.ok)throw Error(typeof data.error==='string'?data.error:'Game data is unavailable.');
+  let data;try{data=await response.json();}catch{throw Error('Game data is temporarily unavailable. Try refresh.');}
+  if(!response.ok)throw Error(typeof data?.error==='string'?data.error:'Game data is unavailable.');
   return data;
 }
