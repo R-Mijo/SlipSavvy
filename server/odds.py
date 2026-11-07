@@ -6,8 +6,9 @@ import secrets
 import threading
 import time
 from urllib.parse import urlencode, parse_qs
-from urllib.request import urlopen, Request
+from urllib.request import Request
 from urllib.error import HTTPError, URLError
+from .report_sources import read_json_response
 
 SPORTS = {'americanfootball_nfl', 'americanfootball_ncaaf', 'basketball_nba',
           'basketball_ncaab', 'icehockey_nhl', 'baseball_mlb'}
@@ -42,6 +43,7 @@ def normalize(events, sport, market, now):
                     if not -MAX_CLOCK_SKEW<=age<=MAX_AGE: continue
                     for outcome in m.get('outcomes',[]):
                         price=outcome.get('price'); label=outcome.get('name'); point=outcome.get('point')
+                        outcome_name=label
                         if type(price) is not int or not 100<=abs(price)<=100000: continue
                         if not isinstance(label,str) or not 0<len(label)<=200: continue
                         if market in {'spreads','totals'}:
@@ -53,6 +55,8 @@ def normalize(events, sport, market, now):
                             'eventId':event_id,'event':f'{away} at {home}', 'startAt':start,
                             'sport':sport,'market':market,'label':label,'americanOdds':str(price),
                             'bookmaker':str(book.get('title',book['key']))[:100],
+                            'bookmakerKey':book['key'], 'homeTeam':home, 'awayTeam':away,
+                            'outcome':outcome_name, 'point':point if market in {'spreads','totals'} else None,
                             'updatedAt':updated,'fetchedAt':datetime.fromtimestamp(now,timezone.utc).isoformat()})
         except (KeyError,TypeError,ValueError,AttributeError):
             continue
@@ -63,16 +67,13 @@ class OddsService:
         self.key=key; self.fetch=fetch or self._fetch; self.clock=clock
         self.daily_limit=daily_limit; self.cache={}; self.day=None; self.calls=0
         self.lock=threading.Lock()
-    def _fetch(self, route, params):
+    def _fetch(self, route, params, timeout=15):
         if not self.key: raise RuntimeError('Game data is not connected yet.')
         query=urlencode(dict(params,apiKey=self.key))
         try:
             request=Request('https://api.the-odds-api.com/v4/'+route+'?'+query,
                             headers={'Accept':'application/json'})
-            with urlopen(request,timeout=15) as response:
-                data=response.read(4*1024*1024+1)
-                if len(data)>4*1024*1024: raise ValueError('Response too large')
-                return json.loads(data)
+            return read_json_response(request, timeout, 4*1024*1024)
         except HTTPError as error:
             raise RuntimeError(f'Odds provider returned HTTP {error.code}.') from None
         except URLError as error:
@@ -80,10 +81,18 @@ class OddsService:
         except Exception:
             # Never expose upstream request URLs (which contain the secret key).
             raise RuntimeError('Game data is temporarily unavailable. Try again later.') from None
-    def get(self, sport=None, market='h2h'):
+    def get(self, sport=None, market='h2h', timeout=None):
         if sport is not None and (sport not in SPORTS or market not in MARKETS):
             raise ValueError('Unsupported sport or market')
-        with self.lock:
+        deadline=None if timeout is None else time.monotonic()+max(0,timeout)
+        acquired=self.lock.acquire() if timeout is None else self.lock.acquire(timeout=max(0,timeout))
+        if not acquired:raise RuntimeError('Game data is busy. Try again shortly.')
+        def fetch(route, params):
+            remaining=15 if deadline is None else min(15,deadline-time.monotonic())
+            if remaining<=0:raise RuntimeError('Game data request budget exhausted.')
+            # Injected fetchers are trusted adapters and must honor their own I/O bounds.
+            return self._fetch(route,params,timeout=remaining) if self.fetch==self._fetch else self.fetch(route,params)
+        try:
             now=self.clock(); key=(sport,market)
             cached=self.cache.get(key)
             ttl=10800 if sport is None else 300
@@ -94,7 +103,7 @@ class OddsService:
                 return dict(result,quotes=[q for q in result['quotes']
                     if -MAX_CLOCK_SKEW<=now-stamp(q['updatedAt'])<=MAX_AGE and stamp(q['startAt'])>now])
             if sport is None:
-                data=self.fetch('sports',{})
+                data=fetch('sports',{})
                 if not isinstance(data,list):raise RuntimeError('Invalid sport list')
                 result={'sports':[{'key':s['key'],'title':s['title']} for s in data
                     if isinstance(s,dict) and s.get('key') in SPORTS and s.get('active') is True
@@ -105,15 +114,28 @@ class OddsService:
                 if self.calls>=self.daily_limit:
                     raise RuntimeError('The testing data allowance is reached. Try again tomorrow.')
                 self.calls+=1  # Reserve attempts, including unsuccessful calls.
-                data=self.fetch(f'sports/{sport}/odds',{'regions':'us','markets':market,
+                data=fetch(f'sports/{sport}/odds',{'regions':'us','markets':market,
                     'bookmakers':','.join(sorted(BOOKS)),'oddsFormat':'american','dateFormat':'iso'})
                 result={'provider':'The Odds API','quotes':normalize(data,sport,market,now),
                     'fetchedAt':datetime.fromtimestamp(now,timezone.utc).isoformat(),
                     'refreshSeconds':300,'maxQuoteAgeSeconds':MAX_AGE}
             self.cache[key]=(now,result)
             return result
+        finally:
+            self.lock.release()
 
 service=OddsService(os.environ.get('ODDS_API_KEY',''))
+report_service=None
+report_init_lock=threading.Lock()
+
+def game_reports():
+    global report_service
+    if report_service is None:
+        with report_init_lock:
+            if report_service is None:
+                from .game_reports import ReportService
+                report_service=ReportService(service)
+    return report_service
 
 def application(environ,start_response):
     status='200 OK'; result={}
@@ -122,9 +144,11 @@ def application(environ,start_response):
         else:
             expected=os.environ.get('ODDS_PREVIEW_TOKEN','')
             supplied=environ.get('HTTP_AUTHORIZATION','')
-            if not expected or not secrets.compare_digest(supplied,'Bearer '+expected):
-                start_response('401 Unauthorized',[('Content-Type','application/json')])
+            if not expected or not secrets.compare_digest(supplied.encode('utf8'),('Bearer '+expected).encode('utf8')):
+                start_response('401 Unauthorized',[('Content-Type','application/json'),('Cache-Control','no-store')])
                 return [b'{"error":"Preview access required"}']
+            if environ.get('PATH_INFO')=='/api/game-reports':
+                return report_application(environ,start_response)
             if environ.get('REQUEST_METHOD')!='GET':raise ValueError('GET required')
             route=environ.get('PATH_INFO'); query=parse_qs(environ.get('QUERY_STRING',''))
             if route=='/api/sports':result=service.get()
@@ -136,3 +160,40 @@ def application(environ,start_response):
         result={'error':str(error) if isinstance(error,RuntimeError) else 'Game data is temporarily unavailable.'}
     start_response(status,[('Content-Type','application/json'),('Cache-Control','no-store')])
     return [json.dumps(result).encode()]
+
+
+def report_application(environ,start_response):
+    from .game_reports import MAX_BODY, ReportBusy
+    from .report_sources import strict_json
+    status='200 OK'
+    headers=[('Content-Type','application/json'),('Cache-Control','no-store')]
+    try:
+        if environ.get('REQUEST_METHOD')!='POST':
+            status='405 Method Not Allowed';headers.append(('Allow','POST'))
+            result={'error':'Use POST for game reports.'}
+        elif environ.get('CONTENT_TYPE','').split(';')[0].strip().lower()!='application/json':
+            status='415 Unsupported Media Type';result={'error':'JSON required.'}
+        else:
+            length=environ.get('CONTENT_LENGTH','')
+            if not length.isascii() or not length.isdecimal() or len(length)>8:
+                raise ValueError('Content length required')
+            size=int(length)
+            if not 0<size<=MAX_BODY:
+                status='413 Payload Too Large';result={'error':'Report input exceeds size limit.'}
+            else:
+                raw=environ['wsgi.input'].read(size)
+                if len(raw)!=size:raise ValueError('Incomplete body')
+                result=game_reports().build(strict_json(raw))
+    except ReportBusy:
+        status='429 Too Many Requests';headers.append(('Retry-After','5'))
+        result={'error':'The preview report service is busy. Try again shortly.'}
+    except (ValueError,TypeError,KeyError,RecursionError,UnicodeError,OverflowError):
+        status='400 Bad Request';result={'error':'Check the structured legs, stake and report input limits.'}
+    except Exception:
+        status='503 Service Unavailable';result={'error':'Game reports are temporarily unavailable.'}
+    encoded=json.dumps(result,allow_nan=False).encode()
+    if len(encoded)>262144:
+        status='503 Service Unavailable';encoded=b'{"error":"Report exceeds response limit."}'
+    headers.append(('Content-Length',str(len(encoded))))
+    start_response(status,headers)
+    return [encoded]

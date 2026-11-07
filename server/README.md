@@ -1,5 +1,7 @@
 # Phone odds service — limited private beta
 
+The backend also has a bounded authenticated `POST /api/game-reports` route for structured per-leg Sevenfold findings. See [request/response and source-adapter contract](../docs/GAME_REPORT_API.md). It is separate from the current mobile UI; missing research/forecast sources remain explicitly unavailable. Weather is opt-in and disabled by default. No model or paid data subscription is installed by adding the endpoint.
+
 The app browses active supported sports, upcoming games and pregame moneylines/spreads/totals from DraftKings and FanDuel via The Odds API. Missing or stale quotes are omitted. There is no forecast, wager placement, in-play selection or player-prop integration in this slice. Provider titles are descriptive references, not sponsorship.
 
 Create a free provider account. Store `ODDS_API_KEY` only in the hosting service's secret environment settings. Never put it in GitHub, Expo public variables, app.json or an APK. The user must configure that secret; no key is committed here.
