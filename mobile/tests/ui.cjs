@@ -1,106 +1,59 @@
-/* Interaction checks against the actual Expo web export, not a mock App. */
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs/promises');
-const path = require('node:path');
-const { JSDOM, ResourceLoader, VirtualConsole } = require('jsdom');
-
-test('exported app supports reviewed entry and invalidates stale calculations', async () => {
-  const root = path.resolve(__dirname, '../dist');
-  class LocalAssets extends ResourceLoader {
-    fetch(url) {
-      const parsed = new URL(url);
-      assert.equal(parsed.origin, 'http://slipsavvy.test');
-      const file = path.resolve(root, '.' + decodeURIComponent(parsed.pathname));
-      assert.ok(file.startsWith(root + path.sep));
-      return fs.readFile(file);
-    }
-  }
-  const errors = [];
-  const virtualConsole = new VirtualConsole();
-  virtualConsole.on('jsdomError', error => errors.push(error));
-  const dom = new JSDOM(await fs.readFile(path.join(root, 'index.html'), 'utf8'), {
-    url: 'http://slipsavvy.test/', runScripts: 'dangerously',
-    resources: new LocalAssets(), pretendToBeVisual: true, virtualConsole,
-    beforeParse(window) {
-      window.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {},
-        addEventListener() {}, removeEventListener() {} });
-      window.scrollTo = () => {};
-    },
-  });
-  const { window } = dom;
-  const document = window.document;
-  const tick = () => new Promise(resolve => setTimeout(resolve, 30));
-  const byId = id => document.querySelector(`[data-testid="${id}"]`);
-  const click = async id => { assert.ok(byId(id), `missing ${id}`); byId(id).click(); await tick(); };
-  const fill = async (id, value) => {
-    const input = byId(id);
-    assert.ok(input, `missing input ${id}`);
-    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set.call(input, value);
-    input.dispatchEvent(new window.Event('input', { bubbles: true }));
-    await tick();
-  };
-  try {
-    const deadline = Date.now() + 15000;
-    while (!byId('add') && Date.now() < deadline && !errors.length) await tick();
-    assert.deepEqual(errors.map(e => e.message), []);
-    assert.ok(byId('add'), 'application booted');
-    assert.match(document.body.textContent, /Entries stay in memory/);
-    await click('tab-learn');
-    assert.match(document.body.textContent, /4\.67%/);
-    await click('tab-check');
-
-    await click('add'); await click('review');
-    assert.ok(byId('error'), 'blank selection rejected');
-    await fill('selection', 'Synthetic home win');
-    await fill('event', 'Synthetic game A');
-    await fill('odds', '+99'); await click('review');
-    assert.ok(byId('error'), 'invalid American odds rejected');
-    await fill('odds', '+100'); await click('review');
-    assert.equal(byId('pick-0'), null, 'review has not yet saved the selection');
-    assert.match(document.body.textContent, /Manual entry \(unverified\)/);
-    assert.match(document.body.textContent, /Unknown — payout math only/);
-    await click('back-to-edit'); await fill('odds', '-110');
-    await click('review'); await click('confirm');
-    assert.match(byId('pick-0').textContent, /-110/);
-    await click('calculate');
-    assert.match(byId('results').textContent, /\$19\.09/);
-    assert.match(byId('results').textContent, /52\.38%/);
-    assert.match(byId('results').textContent, /Chance under your assumptionsUnknown/);
-
-    await fill('stake', '20');
-    assert.equal(byId('results'), null, 'stake change clears stale math');
-    await click('calculate'); assert.match(byId('results').textContent, /\$38\.18/);
-    await click('edit-0'); assert.equal(byId('results'), null, 'editing clears stale math');
-    await fill('odds', '+150'); await click('review'); await click('cancel');
-    assert.match(byId('pick-0').textContent, /-110/, 'cancel leaves confirmed odds intact');
-
-    await click('edit-0'); await fill('odds', '+100'); await fill('chance', '60');
-    await click('review'); await click('confirm');
-    assert.equal(document.querySelectorAll('[data-testid^="pick-"]').length, 1);
-    await click('add'); await fill('selection', 'Synthetic away win');
-    await fill('event', 'Synthetic game B'); await fill('odds', '+100'); await fill('chance', '60');
-    await click('review'); await click('confirm');
-    await click('calculate');
-    assert.doesNotMatch(byId('results').textContent, /ALL MUST WIN/);
-    const switchElement = byId('independent');
-    const checkbox = switchElement.matches('input') ? switchElement : switchElement.querySelector('input');
-    assert.ok(checkbox, 'native switch exports an operable checkbox');
-    checkbox.click(); await tick();
-    assert.equal(byId('results'), null, 'independence change clears stale math');
-    await click('calculate');
-    assert.match(byId('results').textContent, /ALL MUST WIN/);
-    assert.match(byId('results').textContent, /36\.00%/);
-    assert.match(byId('results').textContent, /\$80\.00/);
-    assert.match(byId('results').textContent, /Hypothetical combined price/);
-
-    await click('edit-1'); await fill('event', ' synthetic GAME a ');
-    await click('review'); await click('confirm'); await click('calculate');
-    assert.doesNotMatch(byId('results').textContent, /ALL MUST WIN/, 'same-game combination is excluded');
-    await fill('stake', '0'); await click('calculate');
-    assert.ok(byId('error')); assert.equal(byId('results'), null);
-    await click('remove-0'); assert.equal(byId('results'), null);
-    assert.equal(document.querySelectorAll('[data-testid^="pick-"]').length, 1);
-    assert.deepEqual(errors.map(e => e.message), []);
-  } finally { window.close(); }
+/* Exercise the actual exported app with a Python-generated report contract. */
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {setup,response,fixture,tick}=require('./app-helper.cjs');
+async function app(){
+ const data=await fixture(),quotes=data.legs.map(l=>l.quote),state={calls:[],status:200,hold:false,release:null};
+ const a=await setup(async(url,options={})=>{
+  if(String(url).endsWith('/api/sports'))return response({sports:[{key:'basketball_nba',title:'NBA'}]});
+  if(String(url).includes('/api/odds?'))return response({quotes:quotes.filter(q=>q.market===new URL(url).searchParams.get('market'))});
+  assert.match(String(url),/\/api\/game-reports$/);assert.equal(options.method,'POST');
+  assert.equal(options.headers['Content-Type'],'application/json');assert.match(options.headers.Authorization,/^Bearer /);
+  const input=JSON.parse(options.body);state.calls.push(input);
+  const output=JSON.parse(JSON.stringify(data));output.assessment.comparisonContext={totalStake:input.totalStake,minimumTotalReturn:input.minimumTotalReturn??null,stakeBasis:'fixed_total_capital'};
+  output.legs=input.legs.map(l=>{const leg=output.legs.find(r=>r.selection.eventId===l.eventId&&r.selection.market===l.market);return {...leg,id:l.id,selection:l};});
+  if(state.hold)await new Promise(r=>state.release=r);
+  return response(state.status===200?output:{error:'private-provider-failure'},state.status);
+ });
+ const addFour=async()=>{
+  await a.click('sport-basketball_nba');await a.click('market-spreads');await a.click('game-game-a');await a.click('quote-'+quotes[0].id);
+  await a.click('market-totals');await a.wait('quote-'+quotes[1].id);await a.click('quote-'+quotes[1].id);
+  await a.click('game-game-b');await a.click('quote-'+quotes[3].id);
+  await a.click('market-spreads');await a.wait('quote-'+quotes[2].id);await a.click('quote-'+quotes[2].id);
+ };
+ return {...a,state,addFour,quotes};
+}
+test('select four lines, learn leg tradeoffs, and expand all seven without manual betting fields',async()=>{
+ const a=await app();try{
+  await a.wait('browse-odds');
+  for(const id of ['selection','event','odds','chance','add','review','confirm'])assert.equal(Boolean(a.find(id)),false,id);
+  assert.equal(a.find('analyze-parlay').getAttribute('aria-disabled'),'true');
+  await a.addFour();assert.match(a.find('parlay-count').textContent,/4\/8/);assert.match(a.find('leg-illustration').textContent,/6.25%/);
+  await a.click('report-options');await a.fill('report-floor','90');await a.click('analyze-parlay');await a.wait('game-reports');
+  assert.equal(a.state.calls[0].legs.length,4);assert.equal(a.state.calls[0].minimumTotalReturn,'90.00');
+  assert.match(a.find('game-reports').textContent,/Whole-parlay win chance: research needed/);
+  await a.click('seven-toggle-0');
+  for(const name of ['Jeeves','Luna','Pax','Winston','Lisa','Diego','Gus'])assert.ok(a.find('seven-responses-0').textContent.includes(name),name);
+  assert.equal(a.d.querySelectorAll('[data-testid^="report-leg-"]').length,4);
+  await a.zone('Asia/Tokyo');assert.ok(Boolean(a.find('game-reports')),'zone changes presentation without invalidating research');
+  await a.click('remove-3');assert.equal(Boolean(a.find('game-reports')),false);assert.match(a.find('leg-illustration').textContent,/12.50%/);
+  await a.click('tab-learn');assert.match(a.d.body.textContent,/4.67%/);
+ }finally{a.close();}
+});
+test('access errors are safe and changing stake invalidates a report',async()=>{
+ const a=await app();try{
+  await a.addFour();a.state.status=401;await a.click('analyze-parlay');await a.wait('report-error');
+  assert.match(a.find('report-error').textContent,/Preview access/);assert.doesNotMatch(a.d.body.textContent,/private-provider/);
+  a.state.status=200;await a.click('analyze-parlay');await a.wait('game-reports');
+  await a.click('stake-25');assert.equal(Boolean(a.find('game-reports')),false);
+  await a.click('analyze-parlay');await a.wait('game-reports');assert.equal(a.state.calls.at(-1).totalStake,'25.00');
+ }finally{a.close();}
+});
+test('cancelled and obsolete requests cannot resurrect reports for a changed parlay',async()=>{
+ const a=await app();try{
+  await a.addFour();a.state.hold=true;await a.click('analyze-parlay');await a.wait('cancel-analysis');
+  await a.click('cancel-analysis');a.state.release();await tick();assert.equal(Boolean(a.find('game-reports')),false);
+  await a.click('analyze-parlay');await a.wait('cancel-analysis');await a.click('remove-0');a.state.release();await tick();
+  assert.equal(Boolean(a.find('game-reports')),false);assert.equal(Boolean(a.find('report-error')),false);
+ }finally{a.close();}
 });

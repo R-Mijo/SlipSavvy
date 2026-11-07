@@ -1,0 +1,624 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-06T20:00:00+00:00",
+  "generationMethod": "deterministic_evidence_findings",
+  "events": [
+    {
+      "eventId": "game-a",
+      "sport": "basketball_nba",
+      "homeTeam": "Synthetic Home",
+      "awayTeam": "Synthetic Away",
+      "startAt": "2026-11-07T01:00:00+00:00",
+      "startAtPhoenix": "2026-11-06T18:00:00-07:00",
+      "context": {
+        "status": "unavailable",
+        "reason": "context_not_configured",
+        "evidence": [],
+        "facts": [],
+        "venue": null
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "weather": {
+        "status": "unavailable",
+        "reason": "verified_venue_required"
+      }
+    },
+    {
+      "eventId": "game-b",
+      "sport": "basketball_nba",
+      "homeTeam": "Synthetic Home",
+      "awayTeam": "Synthetic Away",
+      "startAt": "2026-11-07T01:00:00+00:00",
+      "startAtPhoenix": "2026-11-06T18:00:00-07:00",
+      "context": {
+        "status": "unavailable",
+        "reason": "context_not_configured",
+        "evidence": [],
+        "facts": [],
+        "venue": null
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "weather": {
+        "status": "unavailable",
+        "reason": "verified_venue_required"
+      }
+    }
+  ],
+  "legs": [
+    {
+      "id": "leg-1",
+      "selection": {
+        "id": "leg-1",
+        "eventId": "game-a",
+        "sport": "basketball_nba",
+        "bookmaker": "fanduel",
+        "market": "spreads",
+        "outcome": "Synthetic Home",
+        "point": -6.5,
+        "americanOdds": "-110"
+      },
+      "matchStatus": "matched",
+      "eventRef": "basketball_nba:game-a",
+      "quote": {
+        "id": "game-a:fanduel:spreads:Synthetic Home -6.5",
+        "eventId": "game-a",
+        "event": "Synthetic Away at Synthetic Home",
+        "startAt": "2026-11-07T01:00:00+00:00",
+        "sport": "basketball_nba",
+        "market": "spreads",
+        "label": "Synthetic Home -6.5",
+        "americanOdds": "-110",
+        "bookmaker": "FanDuel",
+        "bookmakerKey": "fanduel",
+        "homeTeam": "Synthetic Home",
+        "awayTeam": "Synthetic Away",
+        "outcome": "Synthetic Home",
+        "point": -6.5,
+        "updatedAt": "2026-11-06T19:59:30+00:00",
+        "fetchedAt": "2026-11-06T20:00:00+00:00"
+      },
+      "quoteSource": {
+        "id": "quote:leg-1",
+        "provider": "The Odds API",
+        "sourceUrl": "https://the-odds-api.com/",
+        "updatedAt": "2026-11-06T19:59:30+00:00",
+        "retrievedAt": "2026-11-06T20:00:00+00:00"
+      },
+      "price": {
+        "americanOdds": "-110",
+        "decimalOdds": "1.90909090909",
+        "decimalFraction": {
+          "numerator": 21,
+          "denominator": 11
+        },
+        "breakEvenPercent": 52.38095238095238,
+        "basis": "bookmaker_price_not_win_forecast"
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "legImplication": "Selected team score plus the stated handicap must exceed the opponent score.",
+      "weather": {
+        "status": "unavailable",
+        "reason": "verified_venue_required"
+      },
+      "modelWinProbability": null,
+      "probabilityBasis": "unavailable",
+      "seven": [
+        {
+          "seat": 1,
+          "name": "Jeeves",
+          "status": "ok",
+          "bullets": [
+            "Event and selection match fresh provider data; roster/injury research requires cited context."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        },
+        {
+          "seat": 2,
+          "name": "Luna",
+          "status": "needs_data",
+          "bullets": [
+            "Priced alternate lines and the customer payout floor are needed before ranking alternatives."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 3,
+          "name": "Pax",
+          "status": "needs_data",
+          "bullets": [
+            "Same-game legs require joint outcomes; no bankroll sizing or independence is assumed."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 4,
+          "name": "Winston",
+          "status": "ok",
+          "bullets": [
+            "Quoted decimal price 1.90909090909; break-even 52.38% is a price threshold."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        },
+        {
+          "seat": 5,
+          "name": "Lisa",
+          "status": "needs_data",
+          "bullets": [
+            "Selected team score plus the stated handicap must exceed the opponent score. No supported win estimate is available."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        },
+        {
+          "seat": 6,
+          "name": "Diego",
+          "status": "not_applicable",
+          "bullets": [
+            "No promotion is applied; sportsbook settlement and any future token terms require verification."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 7,
+          "name": "Gus",
+          "status": "needs_data",
+          "bullets": [
+            "Whole-ticket value remains unestablished without joint model support and a combined quote."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "leg-2",
+      "selection": {
+        "id": "leg-2",
+        "eventId": "game-a",
+        "sport": "basketball_nba",
+        "bookmaker": "fanduel",
+        "market": "totals",
+        "outcome": "Over",
+        "point": 229.5,
+        "americanOdds": "-110"
+      },
+      "matchStatus": "matched",
+      "eventRef": "basketball_nba:game-a",
+      "quote": {
+        "id": "game-a:fanduel:totals:Over 229.5",
+        "eventId": "game-a",
+        "event": "Synthetic Away at Synthetic Home",
+        "startAt": "2026-11-07T01:00:00+00:00",
+        "sport": "basketball_nba",
+        "market": "totals",
+        "label": "Over 229.5",
+        "americanOdds": "-110",
+        "bookmaker": "FanDuel",
+        "bookmakerKey": "fanduel",
+        "homeTeam": "Synthetic Home",
+        "awayTeam": "Synthetic Away",
+        "outcome": "Over",
+        "point": 229.5,
+        "updatedAt": "2026-11-06T19:59:30+00:00",
+        "fetchedAt": "2026-11-06T20:00:00+00:00"
+      },
+      "quoteSource": {
+        "id": "quote:leg-2",
+        "provider": "The Odds API",
+        "sourceUrl": "https://the-odds-api.com/",
+        "updatedAt": "2026-11-06T19:59:30+00:00",
+        "retrievedAt": "2026-11-06T20:00:00+00:00"
+      },
+      "price": {
+        "americanOdds": "-110",
+        "decimalOdds": "1.90909090909",
+        "decimalFraction": {
+          "numerator": 21,
+          "denominator": 11
+        },
+        "breakEvenPercent": 52.38095238095238,
+        "basis": "bookmaker_price_not_win_forecast"
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "legImplication": "Requires the combined score to be above 229.5; check overtime and push rules.",
+      "weather": {
+        "status": "unavailable",
+        "reason": "verified_venue_required"
+      },
+      "modelWinProbability": null,
+      "probabilityBasis": "unavailable",
+      "seven": [
+        {
+          "seat": 1,
+          "name": "Jeeves",
+          "status": "ok",
+          "bullets": [
+            "Event and selection match fresh provider data; roster/injury research requires cited context."
+          ],
+          "evidenceIds": [
+            "quote:leg-2"
+          ]
+        },
+        {
+          "seat": 2,
+          "name": "Luna",
+          "status": "needs_data",
+          "bullets": [
+            "Priced alternate lines and the customer payout floor are needed before ranking alternatives."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 3,
+          "name": "Pax",
+          "status": "needs_data",
+          "bullets": [
+            "Same-game legs require joint outcomes; no bankroll sizing or independence is assumed."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 4,
+          "name": "Winston",
+          "status": "ok",
+          "bullets": [
+            "Quoted decimal price 1.90909090909; break-even 52.38% is a price threshold."
+          ],
+          "evidenceIds": [
+            "quote:leg-2"
+          ]
+        },
+        {
+          "seat": 5,
+          "name": "Lisa",
+          "status": "needs_data",
+          "bullets": [
+            "Requires the combined score to be above 229.5; check overtime and push rules. No supported win estimate is available."
+          ],
+          "evidenceIds": [
+            "quote:leg-2"
+          ]
+        },
+        {
+          "seat": 6,
+          "name": "Diego",
+          "status": "not_applicable",
+          "bullets": [
+            "No promotion is applied; sportsbook settlement and any future token terms require verification."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 7,
+          "name": "Gus",
+          "status": "needs_data",
+          "bullets": [
+            "Whole-ticket value remains unestablished without joint model support and a combined quote."
+          ],
+          "evidenceIds": [
+            "quote:leg-2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "leg-3",
+      "selection": {
+        "id": "leg-3",
+        "eventId": "game-b",
+        "sport": "basketball_nba",
+        "bookmaker": "fanduel",
+        "market": "spreads",
+        "outcome": "Synthetic Home",
+        "point": -6.5,
+        "americanOdds": "-110"
+      },
+      "matchStatus": "matched",
+      "eventRef": "basketball_nba:game-b",
+      "quote": {
+        "id": "game-b:fanduel:spreads:Synthetic Home -6.5",
+        "eventId": "game-b",
+        "event": "Synthetic Away at Synthetic Home",
+        "startAt": "2026-11-07T01:00:00+00:00",
+        "sport": "basketball_nba",
+        "market": "spreads",
+        "label": "Synthetic Home -6.5",
+        "americanOdds": "-110",
+        "bookmaker": "FanDuel",
+        "bookmakerKey": "fanduel",
+        "homeTeam": "Synthetic Home",
+        "awayTeam": "Synthetic Away",
+        "outcome": "Synthetic Home",
+        "point": -6.5,
+        "updatedAt": "2026-11-06T19:59:30+00:00",
+        "fetchedAt": "2026-11-06T20:00:00+00:00"
+      },
+      "quoteSource": {
+        "id": "quote:leg-3",
+        "provider": "The Odds API",
+        "sourceUrl": "https://the-odds-api.com/",
+        "updatedAt": "2026-11-06T19:59:30+00:00",
+        "retrievedAt": "2026-11-06T20:00:00+00:00"
+      },
+      "price": {
+        "americanOdds": "-110",
+        "decimalOdds": "1.90909090909",
+        "decimalFraction": {
+          "numerator": 21,
+          "denominator": 11
+        },
+        "breakEvenPercent": 52.38095238095238,
+        "basis": "bookmaker_price_not_win_forecast"
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "legImplication": "Selected team score plus the stated handicap must exceed the opponent score.",
+      "weather": {
+        "status": "unavailable",
+        "reason": "verified_venue_required"
+      },
+      "modelWinProbability": null,
+      "probabilityBasis": "unavailable",
+      "seven": [
+        {
+          "seat": 1,
+          "name": "Jeeves",
+          "status": "ok",
+          "bullets": [
+            "Event and selection match fresh provider data; roster/injury research requires cited context."
+          ],
+          "evidenceIds": [
+            "quote:leg-3"
+          ]
+        },
+        {
+          "seat": 2,
+          "name": "Luna",
+          "status": "needs_data",
+          "bullets": [
+            "Priced alternate lines and the customer payout floor are needed before ranking alternatives."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 3,
+          "name": "Pax",
+          "status": "needs_data",
+          "bullets": [
+            "Same-game legs require joint outcomes; no bankroll sizing or independence is assumed."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 4,
+          "name": "Winston",
+          "status": "ok",
+          "bullets": [
+            "Quoted decimal price 1.90909090909; break-even 52.38% is a price threshold."
+          ],
+          "evidenceIds": [
+            "quote:leg-3"
+          ]
+        },
+        {
+          "seat": 5,
+          "name": "Lisa",
+          "status": "needs_data",
+          "bullets": [
+            "Selected team score plus the stated handicap must exceed the opponent score. No supported win estimate is available."
+          ],
+          "evidenceIds": [
+            "quote:leg-3"
+          ]
+        },
+        {
+          "seat": 6,
+          "name": "Diego",
+          "status": "not_applicable",
+          "bullets": [
+            "No promotion is applied; sportsbook settlement and any future token terms require verification."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 7,
+          "name": "Gus",
+          "status": "needs_data",
+          "bullets": [
+            "Whole-ticket value remains unestablished without joint model support and a combined quote."
+          ],
+          "evidenceIds": [
+            "quote:leg-3"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "leg-4",
+      "selection": {
+        "id": "leg-4",
+        "eventId": "game-b",
+        "sport": "basketball_nba",
+        "bookmaker": "fanduel",
+        "market": "totals",
+        "outcome": "Over",
+        "point": 229.5,
+        "americanOdds": "-110"
+      },
+      "matchStatus": "matched",
+      "eventRef": "basketball_nba:game-b",
+      "quote": {
+        "id": "game-b:fanduel:totals:Over 229.5",
+        "eventId": "game-b",
+        "event": "Synthetic Away at Synthetic Home",
+        "startAt": "2026-11-07T01:00:00+00:00",
+        "sport": "basketball_nba",
+        "market": "totals",
+        "label": "Over 229.5",
+        "americanOdds": "-110",
+        "bookmaker": "FanDuel",
+        "bookmakerKey": "fanduel",
+        "homeTeam": "Synthetic Home",
+        "awayTeam": "Synthetic Away",
+        "outcome": "Over",
+        "point": 229.5,
+        "updatedAt": "2026-11-06T19:59:30+00:00",
+        "fetchedAt": "2026-11-06T20:00:00+00:00"
+      },
+      "quoteSource": {
+        "id": "quote:leg-4",
+        "provider": "The Odds API",
+        "sourceUrl": "https://the-odds-api.com/",
+        "updatedAt": "2026-11-06T19:59:30+00:00",
+        "retrievedAt": "2026-11-06T20:00:00+00:00"
+      },
+      "price": {
+        "americanOdds": "-110",
+        "decimalOdds": "1.90909090909",
+        "decimalFraction": {
+          "numerator": 21,
+          "denominator": 11
+        },
+        "breakEvenPercent": 52.38095238095238,
+        "basis": "bookmaker_price_not_win_forecast"
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "legImplication": "Requires the combined score to be above 229.5; check overtime and push rules.",
+      "weather": {
+        "status": "unavailable",
+        "reason": "verified_venue_required"
+      },
+      "modelWinProbability": null,
+      "probabilityBasis": "unavailable",
+      "seven": [
+        {
+          "seat": 1,
+          "name": "Jeeves",
+          "status": "ok",
+          "bullets": [
+            "Event and selection match fresh provider data; roster/injury research requires cited context."
+          ],
+          "evidenceIds": [
+            "quote:leg-4"
+          ]
+        },
+        {
+          "seat": 2,
+          "name": "Luna",
+          "status": "needs_data",
+          "bullets": [
+            "Priced alternate lines and the customer payout floor are needed before ranking alternatives."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 3,
+          "name": "Pax",
+          "status": "needs_data",
+          "bullets": [
+            "Same-game legs require joint outcomes; no bankroll sizing or independence is assumed."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 4,
+          "name": "Winston",
+          "status": "ok",
+          "bullets": [
+            "Quoted decimal price 1.90909090909; break-even 52.38% is a price threshold."
+          ],
+          "evidenceIds": [
+            "quote:leg-4"
+          ]
+        },
+        {
+          "seat": 5,
+          "name": "Lisa",
+          "status": "needs_data",
+          "bullets": [
+            "Requires the combined score to be above 229.5; check overtime and push rules. No supported win estimate is available."
+          ],
+          "evidenceIds": [
+            "quote:leg-4"
+          ]
+        },
+        {
+          "seat": 6,
+          "name": "Diego",
+          "status": "not_applicable",
+          "bullets": [
+            "No promotion is applied; sportsbook settlement and any future token terms require verification."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 7,
+          "name": "Gus",
+          "status": "needs_data",
+          "bullets": [
+            "Whole-ticket value remains unestablished without joint model support and a combined quote."
+          ],
+          "evidenceIds": [
+            "quote:leg-4"
+          ]
+        }
+      ]
+    }
+  ],
+  "assessment": {
+    "status": "insufficient_data",
+    "estimatedWinProbability": null,
+    "offeredParlayDecimalPrice": null,
+    "alternatives": [],
+    "reasons": [
+      "A calibrated joint ticket forecast and actual combined sportsbook quote are not configured.",
+      "Individual win probabilities are not multiplied into a same-game forecast."
+    ],
+    "comparisonContext": {
+      "totalStake": "10.00",
+      "minimumTotalReturn": "90.00",
+      "stakeBasis": "fixed_total_capital"
+    }
+  }
+}

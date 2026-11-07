@@ -1,8 +1,8 @@
 # Install SlipSavvy on a real phone
 
-This preview profile builds a standalone test app containing its JavaScript. Once installed, it does not need a local development server. It is separate from a development-client build and does not require installing Expo Go. An earlier Android APK was built and installed successfully; the newest odds browser and branding require another build. iPhone physical-device testing remains pending.
+This preview profile builds a standalone test app containing its JavaScript. Once installed, it does not need a local development server. It is separate from a development-client build and does not require installing Expo Go. An earlier Android APK was built and installed successfully; the newest selection-only parlay browser and report cards require another build. iPhone physical-device testing remains pending.
 
-## Existing project: update the branded preview
+## Existing project: update the preview
 
 The existing Expo project is already linked in `app.json` (`c89b20b7-c475-41c5-850f-a2b91da0d2b9`). Retain this identity and the current signing credentials. Do not repeat project creation for this update. Save or commit local configuration edits before updating the branch; do not discard unrelated changes. After updating, run `npm ci` and build the preview again:
 
@@ -10,23 +10,23 @@ The existing Expo project is already linked in `app.json` (`c89b20b7-c475-41c5-8
 npx.cmd eas-cli build --platform android --profile preview
 ```
 
-Install the new APK from the resulting EAS build page. Confirm the charcoal/lime S home-screen icon, launch screen and full SlipSavvy header. Native icon/splash changes need a rebuild; refreshing the old app is insufficient. The data browser additionally needs its hosted endpoint and preview access configured as described in `server/README.md`.
+Install the new APK from the resulting EAS build page. Confirm the SlipSavvy identity, date/time-zone filters, parlay tray and report cards. Native icon/splash changes need a rebuild; refreshing the old app is insufficient. The data browser additionally needs its hosted endpoint and preview access configured as described in `server/README.md`.
 
 Brand files and future store graphics are documented in [`brand/README.md`](../brand/README.md).
 
 ## First-time setup reference
 
-Use Node 24 LTS, npm, Git and an Expo account. Work from the phone-preview branch while it is still unmerged:
+Use Node 24 LTS, npm, Git and an Expo account. For a new checkout, start from main after the intended PR is reviewed and merged:
 
 ```sh
-git clone --branch codex/mobile-manual-review-ee57d24 https://github.com/R-Mijo/SlipSavvy.git
+git clone https://github.com/R-Mijo/SlipSavvy.git
 cd SlipSavvy/mobile
 npm ci
 npx eas-cli login
 npx eas-cli build:configure
 ```
 
-If you already have the repository, switch/update that branch rather than cloning over your existing work. The last command connects the local app to your Expo project and may add its project ID to app.json. Confirm that you are using your own Expo account/project. The preview profile is already provided in eas.json; retain it when configuring. Do not commit credentials, signing files or account tokens. No project identity or credentials are fabricated by this repository.
+If you already have the repository, switch/update your intended branch rather than cloning over your existing work. The last command connects the local app to your Expo project and may add its project ID to app.json. Confirm that you are using your own Expo account/project. The preview profile is already provided in eas.json; retain it when configuring. Do not commit credentials, signing files or account tokens. No project identity or credentials are fabricated by this repository.
 
 Expo performs the native compilation in its cloud. This route can be initiated from Windows and does not require a local Mac/Xcode installation. Build availability, queue and charges depend on your Expo account and plan; review any quoted charges before proceeding.
 
@@ -55,12 +55,14 @@ This internal build does not submit an App Store listing. TestFlight is an alter
 
 ## First test on either phone
 
-1. Add a synthetic +100 selection and review/confirm it. At $10, verify $20 total return and $10 profit.
-2. Edit it to -110. Old results should disappear; recalculate and verify about $19.09 returned.
-3. Check the negative-odds keyboard, bottom buttons, large text and screen-reader labels.
-4. Exercise invalid odds, cancel, remove and reload. Entries currently clear on reload.
-5. Record the tested commit, device/OS and observed failures in the pull request.
+1. Confirm the device time zone is selected automatically. Change it to New York, Phoenix and Tokyo; verify local date, time, daylight-saving behavior and morning/afternoon/night groups against the same event.
+2. Browse NCAA games by available date and day part. Check eight-game pages, empty groups and market changes retaining the chosen game when available.
+3. Tap multiple provider lines into the parlay. Confirm no manual selection/event/odds fields appear, removing a leg works, and the extra-leg illustration is clearly hypothetical.
+4. Analyze two markets from one game plus another game. Verify each leg has a compact report and all seven responses, matching underlying event research, exact prices, source timestamps and explicit missing-data states. Default missing forecasts must not appear as numerical win estimates.
+5. Test expired lines, changed prices, unavailable provider, cancelling, and changing a stake/pick during analysis. Old reports must not return. Check that changing only the time zone reformats an existing report without another provider request.
+6. Check safe areas, touch targets, long names, keyboard access for optional stake/return amounts, large text and VoiceOver/TalkBack. Entries and time-zone preferences clear on reload.
+7. Record commit, device/OS and failures in GitHub. Existing APKs will not gain this revision until rebuilt and installed.
 
-This phone slice has no screenshot recognition, live feed, native 100,000-run engine or billing. Compilation and installation are separate from a successful physical-device test.
+This slice has no screenshot/share recognition, supported whole-parlay forecast, offered alternate-line optimizer, native 100,000-run engine or billing. Compilation, installation and a physical-device test are separate checks. Do not publish the provider key in client configuration or reports.
 
 References: [Expo internal distribution](https://docs.expo.dev/build/internal-distribution/), [Android APK builds](https://docs.expo.dev/build-reference/apk/), [Apple membership](https://developer.apple.com/programs/enroll/), [Expo Go version compatibility](https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/).

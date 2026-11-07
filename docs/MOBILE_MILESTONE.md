@@ -1,4 +1,16 @@
-# Native manual-entry milestone
+# Mobile milestones
+
+## Selection-only parlays and report cards — November 7, 2026
+
+Based on verified merged backend main `dd73f4326206673223352b05f9210dde176c9609` (PR #4). This next PR removes manual betting fields from the mobile UI. Users select current provider lines, filter games by local date and morning/afternoon/night, keep up to eight lines, see a hypothetical extra-leg lesson, and request per-leg reports with all seven findings. The device time zone is the initial choice; an in-app time-zone selector reformats dates/times/groups and report timestamps for any user. Phoenix is not forced.
+
+The app uses structured provider identities, never guesses from a label, and invalidates reports on changes/cancellation/expiry. The selection browser shows eight games per page. The report contract remains bounded to four games and four sport/market queries. Dates and sports reflect existing feed coverage. See [mobile usage and limits](../mobile/README.md) and the [backend contract](GAME_REPORT_API.md).
+
+No new odds/research purchase, model, cloud build, merge, deployment or store submission is included. Context feeds, licensed commercial weather/venue data, a validated game/joint forecast, actual combined sportsbook quotes and priced alternate/split-ticket comparisons remain dependencies. DOM and export checks do not establish native-device usability. GitHub PR checks identify the exact tested commit; retain issue #3 for the larger unfinished scope.
+
+The sections below record the earlier manual-entry milestone and its historical checks; they do not describe the new selection-only UI.
+
+## Earlier manual-entry milestone
 
 ## Combined source check — November 6, 2026
 

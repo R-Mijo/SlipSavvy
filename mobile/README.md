@@ -1,46 +1,43 @@
 # SlipSavvy phone preview
 
-The shared [SlipSavvy identity](../brand/README.md) is configured for the home-screen icon, Android adaptive/themed icon, native launch screen, header and web favicon. A new build/install is needed to see native icon and splash changes.
+Select a sport → date → game → sportsbook lines → Analyze. Betting selections come from The Odds API through the [private-beta service](../server/README.md); the app no longer offers manual selection, event, odds or win-chance fields. Up to eight lines stay in session memory. Nothing is placed with a bookmaker.
 
-First working native input/review milestone for iPhone and Android. The same React Native interface also exports to web for automated interaction checks. This is a development preview, not a store release or a prediction service.
+The interface starts with the device time zone. Users can choose another city/time zone, including international zones; game dates, start times, morning/afternoon/night groups and report timestamps follow that choice with daylight-saving rules. The choice lasts for the session. Morning is before noon, afternoon is noon–4:59 PM and night starts at 5 PM in the chosen zone. NCAA and other sports share the same date/day-part filters and eight-game pages. Dates represent games returned by the current feed, not an unlimited historical/future calendar.
 
-The next revision adds a sport → upcoming game → sportsbook line browser backed by the [private-beta odds service](../server/README.md). It requires deployment and EAS preview environment configuration before live data is available on a phone. A chosen line opens the existing review step with its price, source and update time; it never invents a win estimate. The previous installed APK does not have this feature.
+The shared [SlipSavvy identity](../brand/README.md) remains configured for native icons, launch screen, header and favicon. This is an unsigned source preview; a new build/install is required to use this revision on a phone. The existing Expo project and signing credentials should be retained. See [PHONE_TESTING.md](PHONE_TESTING.md).
 
-For standalone installation on real phones, use [PHONE_TESTING.md](PHONE_TESTING.md) and the included `preview` build profile in `eas.json`. These builds include the app code and do not need a development server or Expo Go after installation. The existing Expo project is linked. An earlier Android APK was built and installed; this revision needs a fresh build. iPhone signing and physical-device testing remain pending.
+## Run and verify
 
-## Run
-
-Node 24 LTS and npm are required. From `mobile/`:
+Node 24 and npm are required. From `mobile/`:
 
 ```sh
 npm ci
 npm run check
 npm test
+npx expo install --check
 npm run export
 node tests/ui.cjs
+node tests/odds-ui.cjs
 npm start
 ```
 
-Use a development client compatible with Expo SDK 58. Follow the current [Expo development-build instructions](https://docs.expo.dev/develop/development-builds/introduction/); do not assume the iPhone Expo Go app supports this SDK. Local native builds use `npm run android` with the Android toolchain, or `npm run ios` on macOS with Xcode. No account, cloud build, payment, signing or store upload is performed by the checks above. `expo export` compiles platform bundles; it does not produce signed APK/AAB/IPA files or run the app on a phone.
+For connected data, set `EXPO_PUBLIC_ODDS_API_URL` to the HTTPS backend and `EXPO_PUBLIC_ODDS_PREVIEW_TOKEN` to its preview-access value. Keep `ODDS_API_KEY` on the server only. Public Expo variables are embedded in the client; the preview token is an extractable beta gate, not per-user production authentication. Tests/export use `https://odds.example.test` and synthetic fixtures; they do not contact an odds provider or prove live credentials are configured.
 
-## What works
+## Parlay and reports
 
-- Enter a selection, game and American odds. Source name, reference URL and the user's estimated chance are optional.
-- Review the entered fields before confirming. Editing returns to the entry and review steps; it replaces the existing selection only after confirmation.
-- Keep up to eight reviewed selections in memory. Remove a selection or edit stake/assumptions and previous calculations disappear immediately.
-- Calculate exact fractional single-selection payouts, gross return, net profit and the break-even price threshold. Estimates never default to price-implied probabilities.
-- Explicitly opt into independent combinations of two or three selections. Same-game combinations are excluded using normalized user-entered event names. Different names are not proof of different games or independence. Combined prices are hypothetical, not sportsbook quotes.
-- Show assumed chance and expected net only when all selections in that scenario have a user-supplied probability. These are model scenarios, not calibrated confidence scores or recommendations.
-- Learn odds, combined probabilities, gross versus net, model limits and affordable use in plain language.
+- Tap current lines to add them directly; tap the same line again to update its price rather than duplicate it. Remove any leg from the tray. Games from the same event remain recognizable across market changes.
+- Adding legs updates a clearly labeled hypothetical independent-50% illustration. It educates about the extra conditions needed to win; it never labels price-derived probabilities as forecasts or multiplies same-game marginals.
+- Choose a $5/$10/$25 total stake with one tap. A custom stake and optional minimum total return are under expandable options. No other betting details need typing.
+- Analyze sends exact provider event IDs and structured market/outcome/point fields to `POST /api/game-reports`. Preview limits are eight legs, four games and four sport/market lookups. These are inherited server bounds, not a promise of unlimited sport/market coverage.
+- Expand mini reports for exact line/price, matchup/local date, game-script status, applicable weather, all seven short responses (Jeeves, Luna, Pax, Winston, Lisa, Diego, Gus), sources and timestamps. Same-game legs share event research and receive leg-specific findings. No memos.
+- Changing picks, stake or return target cancels pending work and hides earlier reports. Cancelled/obsolete results cannot reappear. Expired quotes/evidence require another analysis. A changed or unavailable price is flagged rather than substituted into a recommendation.
 
-The dark interface uses lime accents, safe-area insets, keyboard avoidance, named inputs, accessible buttons and a separate review step. These are implementation features; physical device accessibility and layout verification remain pending.
+The seven responses currently consist of deterministic responsibility-based evidence/math checks, not seven independent researched AI forecasts. With default server settings, context, venue/weather and model scripts will often be unavailable; that missing status is shown. See the [backend contract and source dependencies](../docs/GAME_REPORT_API.md). Whole-ticket win estimates, offered combined parlay prices, alternate-line optimization and split-ticket comparisons remain unavailable. The UI does not claim a smart bet or supported edge from missing research.
 
-## Data and limits
+## Coverage and release gates
 
-The entry timestamp records when the user confirmed the selection. It does **not** claim that a provider checked the odds at that time. Source URLs are reference text and are not fetched or opened. Entries exist only in app memory and disappear after reload. There is no telemetry, persistence, sign-in, remote API, billing or wager placement in application code. Dependency, development-server and operating-system behavior must be included in the later release privacy audit.
+Current backend coverage: NFL, NCAAF, NBA, NCAAB, NHL and MLB; FanDuel and DraftKings; moneyline, spread and total. Current quotes are cached and can change. Actual sportsbooks must confirm availability and prices. Eight lines need not form a valid single-book ticket; no offered joint quote is assumed.
 
-This slice deliberately excludes screenshot access/OCR, live odds and injury feeds, weather, simulations, same-game modeling, pushes/voids/promotions, stake recommendations and purchase entitlements. `src/math.ts` retains previously written candidate-text/import helpers as unexposed utilities; they are not screenshot recognition or an import feature. The Python package remains the full scenario engine.
+No screenshot/share import, trained prediction model, same-game joint model, automatic injury/lineup research, billing, account or wager placement is supplied by this UI. Existing math/manual-review utilities remain tested as libraries but are no longer entry flows. Entries and time-zone preferences clear on reload. The service receives selected lines and stake/return choices when analyzing; provider/source requests and infrastructure behavior need the release privacy audit. Source links open only on a user tap.
 
-## Verification and next gates
-
-See [the mobile milestone record](../docs/MOBILE_MILESTONE.md) for the base commit, independent checks, collaboration protocol and the next paid-release gates. No store approval or device test is implied by passing compilation or DOM interaction checks.
+TypeScript, unit tests, all-platform Expo exports and exported-web interaction checks cover this revision. They do not replace native layout, accessibility, Hermes execution, or physical iPhone/Android tests. The [milestone record](../docs/MOBILE_MILESTONE.md) preserves earlier history and current boundaries. No cloud build, deployment or store submission is started by these checks.
