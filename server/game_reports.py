@@ -304,7 +304,8 @@ class ReportService:
                 'assessment': {'status': 'insufficient_data', 'estimatedWinProbability': None,
                     'offeredParlayDecimalPrice': None, 'alternatives': [],
                     'reasons': ['A calibrated joint ticket forecast and actual combined sportsbook quote are not configured.',
-                                'Individual win probabilities are not multiplied into a same-game forecast.'],
+                                'Individual win probabilities are not multiplied into a same-game forecast.',
+                                           'Push and void settlement rules are required before comparing alternate lines or split tickets.'],
                     'comparisonContext': {'totalStake': request['totalStake'],
                                           'minimumTotalReturn': request['minimumTotalReturn'],
                                           'stakeBasis': 'fixed_total_capital'}}}
