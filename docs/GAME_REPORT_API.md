@@ -31,7 +31,25 @@ Leg fields are exact and case-sensitive. `id` is a unique local ID of 1–100 ch
 
 `GET /api/odds` now **additively** supplies `bookmakerKey`, `homeTeam`, `awayTeam`, `outcome` and `point`. Existing IDs, formatted labels and mobile fields remain unchanged. The future UI should map these fields directly into the report input. No parsing of selection labels or fuzzy event guessing is performed.
 
-Limits: 1–8 unique legs, at most four distinct events and four sport/market lookups. Repeated selections under different IDs, arbitrary extra fields, URLs, duplicate JSON keys, nonfinite numbers, malformed amounts and unsupported markets are rejected before fetching. The first PR preserves current sport/book coverage; dynamic all-sport discovery and alternate-market support are separate work.
+Limits: 1–8 unique legs, at most four distinct events and four sport/market lookups. Repeated selections under different IDs, arbitrary extra fields, URLs, duplicate JSON keys, nonfinite numbers, malformed amounts and unsupported markets are rejected before fetching. Sport/book coverage is unchanged; dynamic all-sport discovery remains separate work. Offered alternate retrieval is described below.
+
+## Offered alternate quotes
+
+`GET /api/odds/alternates?sport=basketball_nba&eventId=provider-id`, with the existing preview Bearer token, requests actually offered `alternate_spreads` and `alternate_totals`. Repeat `eventId` for up to eight selections / four distinct games of one allowlisted sport. Duplicate IDs reuse one event lookup. Only `sport` and `eventId` are accepted. Query length is at most 1,024 characters.
+
+Quotes retain the provider market key, event identity, sportsbook, raw outcome, point, American price and provider/retrieval timestamps. No main-market relabeling. Duplicate book/market/outcome rows are omitted conservatively; conflicting identities, stale/started games and malformed data are rejected or unavailable. Quotes recheck freshness after network work and at completion. Main-market report requests still do not accept alternate-market selections.
+
+One event returns `eventId`, `quotes`, `markets`, `fetchedAt`, `refreshSeconds`, `maxQuoteAgeSeconds`, `provider`, `sport` and `comparison`. Multiple events return `eventIds`, per-event `events` and combined `quotes`. Clients should use IDs rather than infer response shape from selection count. Empty valid results mean no usable offers, not a fabricated replacement line.
+
+`opposingAmericanOdds` is present only for a unique opposing outcome from the same event/book/market/update timestamp and matching threshold (opposite signed spread or identical total). Whole-number points set `pushPossible: true`; no push/void probability is inferred. `comparison` remains `insufficient_data` / `no_supported_edge`, with null win estimate, joint price and supported edge. These are offered candidate prices, not optimized recommendations.
+
+### Budget, cache and errors
+
+Main and alternate lookups share a conservative ten-credit/UTC-day process-local reservation: one credit per normal single-market lookup, two per two-market alternate event lookup. Reservations precede I/O, including failures. Cache hits cost zero new reserved credits. This can over-reserve when fewer markets return. It is not authoritative provider billing or durable monthly accounting; restarts/workers retain the existing limitations.
+
+Event quotes cache for five minutes. Expired alternate cache entries are pruned and total cache growth from event entries is capped at 64 slots alongside normal caches. Fresh conflicting identities block ambiguous results; expired caches cannot permanently block reschedules. Shared locking deduplicates same-game requests. The endpoint supplies a 20-second work/lock budget; readers have at most five-second socket waits, so in-flight reads can overrun by up to five seconds. Injected adapters must honor their timeout contract. Upstream alternates are capped at 1 MiB; serialized responses are capped at 256 KiB. Oversized combined responses return 503, not a truncated ticket.
+
+Authentication runs first (401). Invalid fields/IDs/method return 400; missing route 404; unavailable sources/quota/busy/oversize return sanitized 503. Unknown keys and unsupported markets are rejected before provider work. No provider URL/key is accepted from a client. No route aliases are added.
 
 ## Response
 
@@ -68,7 +86,7 @@ Whole-ticket probability remains null, the offered combined price remains null, 
 
 ### Odds/event identity
 
-`OddsService` supplies fresh quotes using its existing provider key, five-minute cache and ten-attempt/day guard. Lookups are grouped by sport/market, so multiple legs do not fetch a sport market repeatedly. The report reuses the cache populated by browsing where available. Failures consume reservations as before. Reports never accept a provider URL or provider credential from clients.
+`OddsService` supplies fresh quotes using its existing provider key, five-minute cache and ten-credit/day shared reservation (one per main lookup, two per alternate event lookup). Lookups are grouped by sport/market, so multiple legs do not fetch a sport market repeatedly. The report reuses the cache populated by browsing where available. Failures consume reservations as before. Reports never accept a provider URL or provider credential from clients.
 
 ### Context and venue
 
