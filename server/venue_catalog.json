@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "venues": [
+    {
+      "stadiumId": "SEA00",
+      "name": "Lumen Field",
+      "names": ["Lumen Field"],
+      "roof": "outdoor",
+      "latitude": 47.595277777778,
+      "longitude": -122.33166666667,
+      "checkedAt": "2026-11-07T23:16:00Z",
+      "validUntil": "2026-12-07T23:16:00Z",
+      "sources": [
+        {"kind":"roof","publisher":"Washington State Public Stadium Authority","url":"https://stadium.org/lumen-field/stadium-features-facts/"},
+        {"kind":"coordinates","publisher":"Wikidata, CC0; revision 2541715106","url":"https://www.wikidata.org/w/index.php?title=Q612736&oldid=2541715106"}
+      ]
+    },
+    {
+      "stadiumId": "MIN01",
+      "name": "U.S. Bank Stadium",
+      "names": ["U.S. Bank Stadium"],
+      "roof": "indoor",
+      "checkedAt": "2026-11-07T23:16:00Z",
+      "validUntil": "2026-12-07T23:16:00Z",
+      "sources": [{"kind":"roof","publisher":"U.S. Bank Stadium","url":"https://www.usbankstadium.com/plan-your-visit/a-z-guide"}]
+    },
+    {
+      "stadiumId": "IND00",
+      "name": "Lucas Oil Stadium",
+      "names": ["Lucas Oil Stadium"],
+      "roof": "retractable",
+      "checkedAt": "2026-11-07T23:16:00Z",
+      "validUntil": "2026-12-07T23:16:00Z",
+      "sources": [{"kind":"roof","publisher":"Indianapolis Colts","url":"https://www.colts.com/game-day/stadium/"}]
+    }
+  ]
+}

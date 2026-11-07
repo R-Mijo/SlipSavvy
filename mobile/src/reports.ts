@@ -1,6 +1,7 @@
 import { american, number, type Pick } from './math';
 import { checkQuote, isProp } from './odds';
 import { decodeResearch,type Research } from './research';
+import { decodeVenue,type Venue } from './venue';
 
 export const seats = ['Jeeves','Luna','Pax','Winston','Lisa','Diego','Gus'] as const;
 export type ReportLegInput = {id:string;eventId:string;sport:string;bookmaker:string;market:string;
@@ -10,9 +11,10 @@ export type Evidence = {id:string;url:string;publisher:string;observedAt:string;
 export type Script = {status:'unavailable'|'model_supplied';mostLikelyScenarioId:string|null;
   validUntil?:string;scenarios:{id:string;summary:string;probability:number}[]};
 export type Weather = {status:'available'|'unavailable'|'not_applicable';reason?:string;
-  retrievedAt?:string;hourAt?:string;attribution?:string;sourceUrl?:string;values?:Record<string,number>};
+  provider?:string;providerUpdatedAt?:string;validUntil?:string;hourUntil?:string;windRangeMph?:{low:number;high:number}|null;missingFields?:string[];
+  retrievedAt?:string;hourAt?:string;attribution?:string;sourceUrl?:string;values?:Record<string,number|null>};
 export type EventReport = {eventId:string;sport:string;homeTeam:string;awayTeam:string;startAt:string;
-  startAtPhoenix:string;gameScript:Script;weather:Weather;research?:Research;context:{evidence:Evidence[];facts:{text:string;evidenceIds:string[]}[]}};
+  startAtPhoenix:string;gameScript:Script;weather:Weather;research?:Research;venue?:Venue;context:{evidence:Evidence[];facts:{text:string;evidenceIds:string[]}[]}};
 export type LegReport = {id:string;matchStatus:string;eventRef:string|null;legImplication:string;
   modelWinProbability:number|null;probabilityBasis:string;
   price:{americanOdds:string;decimalOdds:string;breakEvenPercent:number}|null;
@@ -77,11 +79,31 @@ function script(value:unknown):Script {
   if(id!==null&&(leaders.length!==1||leaders[0].id!==id))throw Error('Invalid model scenario ranking.');
   return {status:'model_supplied',validUntil:date(s.validUntil),mostLikelyScenarioId:id===null?null:str(id,80),scenarios};
 }
-function weather(value:unknown):Weather {
+function weather(value:unknown,startAt:string):Weather {
   const w=record(value);
-  if(w.status==='unavailable'||w.status==='not_applicable')return {status:w.status,reason:str(w.reason,100)};
+  if(w.status==='unavailable'||w.status==='not_applicable')return {status:w.status,reason:str(w.reason,100),...(w.validUntil?{validUntil:date(w.validUntil)}:{})};
   if(w.status!=='available'||w.kind!=='forecast')throw Error('Invalid weather report.');
   const values=record(w.values),units=record(w.units);
+  if(w.provider==='NWS'){
+    const ranges=[['temperatureF','°F',-150,160],['precipitationChance','%',0,100],['windSpeedMph','mph',0,250],['windGustMph','mph',0,300]] as const;
+    for(const [key,unit,low,high] of ranges)
+      if(units[key]!==unit||values[key]!==null&&(typeof values[key]!=='number'||!Number.isFinite(values[key])||values[key]<low||values[key]>high))throw Error('Invalid NWS weather values.');
+    const interval=w.windRangeMph===null?null:record(w.windRangeMph);
+    if(interval&&(values.windSpeedMph!==null||typeof interval.low!=='number'||typeof interval.high!=='number'||
+      !Number.isFinite(interval.low)||!Number.isFinite(interval.high)||interval.low<0||interval.high>250||interval.low>=interval.high))throw Error('Invalid forecast wind range.');
+    const missing=list(w.missingFields,4).map(v=>str(v,40));
+    const expected=ranges.map(([key])=>key).filter(key=>values[key]===null&&!(key==='windSpeedMph'&&interval));
+    if(expected.length===4)throw Error('No weather values available.');
+    if(missing.length!==expected.length||new Set(missing).size!==missing.length||missing.some(key=>!expected.includes(key as any))||
+      w.coverage!==(missing.length?'partial':'available'))throw Error('Invalid missing-weather fields.');
+    const updated=date(w.providerUpdatedAt),retrieved=date(w.retrievedAt),until=date(w.validUntil),hour=date(w.hourAt),end=date(w.hourUntil);
+    if(Date.parse(updated)>Date.parse(retrieved)+60000||Date.parse(until)<=Date.parse(retrieved)||Date.parse(until)>Date.parse(retrieved)+300000||
+      Date.parse(until)>Date.parse(updated)+21600000||Date.parse(hour)>Date.parse(startAt)||Date.parse(end)<=Date.parse(startAt)||
+      Date.parse(end)-Date.parse(hour)>3601000)throw Error('Invalid kickoff-hour forecast times.');
+    if(!/^https:\/\/api\.weather\.gov\/gridpoints\/[A-Z]{3}\/-?\d{1,4},-?\d{1,4}\/forecast\/hourly$/.test(w.sourceUrl))throw Error('Invalid NWS source.');
+    return {status:'available',provider:'NWS',values,providerUpdatedAt:updated,retrievedAt:retrieved,validUntil:until,hourAt:hour,hourUntil:end,
+      windRangeMph:interval?{low:interval.low,high:interval.high}:null,missingFields:missing,sourceUrl:w.sourceUrl,attribution:str(w.attribution,100)};
+  }
   for(const [key,unit,low,high] of [['temperature_2m','°F',-150,160],['precipitation_probability','%',0,100],
     ['wind_speed_10m','mp/h',0,250],['wind_gusts_10m','mp/h',0,300]] as const)
     if(units[key]!==unit||typeof values[key]!=='number'||!Number.isFinite(values[key])||values[key]<low||values[key]>high)throw Error('Invalid weather units.');
@@ -96,7 +118,8 @@ export function decodeReports(value:unknown,input:ReportInput):GameReports {
     throw Error('Unsupported report version or ticket assessment.');
   const events:EventReport[]=list(d.events,4).map(v=>{const e=record(v),c=record(e.context);
     return {eventId:str(e.eventId,100),sport:str(e.sport,100),homeTeam:str(e.homeTeam,200),awayTeam:str(e.awayTeam,200),
-      startAt:date(e.startAt),startAtPhoenix:date(e.startAtPhoenix),gameScript:script(e.gameScript),weather:weather(e.weather),
+      startAt:date(e.startAt),startAtPhoenix:date(e.startAtPhoenix),gameScript:script(e.gameScript),weather:weather(e.weather,date(e.startAt)),
+      venue:decodeVenue(e.venue,e.research),
       research:decodeResearch(e.research,{sport:str(e.sport,100),startAt:date(e.startAt)},input.legs.filter(l=>l.sport===e.sport&&l.eventId===e.eventId&&l.playerName).map(l=>l.playerName!)),
       context:{evidence:list(c.evidence,24).map(v=>{const r=record(v),url=evidenceUrl(r.url);if(!url)throw Error('Evidence provenance is missing.');return {id:str(r.id,100),url,publisher:str(r.publisher,100),observedAt:date(r.observedAt),validUntil:date(r.validUntil)};}),
         facts:list(c.facts,8).map(v=>{const r=record(v);return {text:str(r.text,280),evidenceIds:list(r.evidenceIds,24).map(v=>str(v,100))};})}};
@@ -144,6 +167,8 @@ export function reportFresh(report:GameReports,now=Date.now()):boolean {
   return age>=-60000&&age<=900000&&report.legs.every(l=>!l.quote||
     Date.parse(l.quote.startAt)>now&&now-Date.parse(l.quote.updatedAt)<=900000&&now-Date.parse(l.quote.updatedAt)>=-60000)&&
     report.events.every(e=>Date.parse(e.startAt)>now&&e.context.evidence.every(s=>Date.parse(s.validUntil)>now)&&
+      (e.venue?.status!=='matched_catalog'||Date.parse(e.venue.validUntil)>now)&&
+      (!e.weather.validUntil||Date.parse(e.weather.validUntil)>now)&&
       (!e.research||e.research.sources.every(s=>Date.parse(s.validUntil)>now))&&
       (e.gameScript.status!=='model_supplied'||Date.parse(e.gameScript.validUntil!)>now)&&
       (e.weather.status!=='available'||now-Date.parse(e.weather.retrievedAt!)<=300000));

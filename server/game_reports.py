@@ -3,6 +3,7 @@ from collections import OrderedDict, deque
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from fractions import Fraction
+import os
 import re
 import threading
 import time
@@ -149,11 +150,14 @@ def forecast_snapshot(context, event, now):
 
 
 class ReportService:
-    def __init__(self, odds, context=None, weather=None, clock=time.time, monotonic=time.monotonic, research=None):
+    def __init__(self, odds, context=None, weather=None, clock=time.time, monotonic=time.monotonic, research=None, venues=None):
         from .nfl_research import NflResearch
+        from .venue_weather import NwsWeather, VenueCatalog
         self.odds = odds
         self.context = context if context is not None else ContextCatalog()
-        self.weather = weather if weather is not None else OpenMeteoWeather()
+        mode=os.environ.get('REPORT_WEATHER_MODE','nws')
+        self.weather = weather if weather is not None else NwsWeather(clock=clock,monotonic=monotonic,mode=mode) if mode in {'nws','disabled'} else OpenMeteoWeather()
+        self.venues=venues if venues is not None else VenueCatalog()
         self.research = NflResearch(clock=clock,monotonic=monotonic) if research is None else research
         self.clock, self.monotonic = clock, monotonic
         self.gate = threading.BoundedSemaphore(1)
@@ -167,17 +171,18 @@ class ReportService:
         return left
 
     def _weather(self, event, context, now, deadline):
-        venue = context.get('venue')
+        venue = context.get('venue') or (event.get('venue') if event.get('venue',{}).get('status')=='matched_catalog' else None)
         if not venue:
             return {'status': 'unavailable', 'reason': 'verified_venue_required'}
         if venue['roof'] == 'indoor' or (venue['roof'] == 'retractable' and venue['roofState'] == 'closed'):
             return {'status': 'not_applicable', 'reason': 'indoor_or_confirmed_closed_roof',
-                    'evidenceIds': venue['evidenceIds'] + venue.get('roofEvidenceIds', [])}
+                    'evidenceIds': venue.get('evidenceIds',[]) + venue.get('roofEvidenceIds', []),
+                    **({'validUntil':venue['validUntil']} if venue.get('validUntil') else {})}
         if venue['roof'] != 'outdoor' and not (venue['roof'] == 'retractable' and venue['roofState'] == 'open'):
             return {'status': 'unavailable', 'reason': 'roof_state_unknown'}
-        key = (event['sport'], event['eventId'], event['startAt'], venue['latitude'], venue['longitude'])
+        key = (event['sport'], event['eventId'], event['startAt'], venue['latitude'], venue['longitude'],venue['roof'],venue.get('roofState'))
         cached = self.weather_cache.get(key)
-        if cached and 0 <= now - cached[0] < 300:
+        if cached and 0 <= now - cached[0] < 300 and (not cached[1].get('validUntil') or timestamp(cached[1]['validUntil'])>now):
             self.weather_cache.move_to_end(key)
             return cached[1]
         try:
@@ -285,9 +290,15 @@ class ReportService:
                     research = self.research.lookup(event,names,now,timeout=self._remaining(deadline)) if self.research else unavailable('research_disabled')
                 except Exception:
                     research = unavailable('research_provider_unavailable')
+                try:
+                    venue = self.venues.lookup(event,research,now) if not context.get('venue') else {'status':'operator_supplied','reason':'curated_context_venue'}
+                except Exception:
+                    venue = {'status':'unavailable','reason':'venue_catalog_unavailable'}
                 event.update(context={k: context[k] for k in ('status', 'reason', 'evidence', 'facts', 'venue')},
                              gameScript=forecast_snapshot(context, event, now),
                              research=research,
+                             venue=venue)
+                event.update(
                              weather=self._weather(event, context, now, deadline))
                 events[event_key] = event
         for leg, (status, q) in zip(request['legs'], matches):
@@ -296,6 +307,13 @@ class ReportService:
         # A network operation may straddle the start/staleness boundary.
         finished = self.clock()
         for event in events.values():
+            venue=event['venue']
+            if venue.get('status')=='matched_catalog' and timestamp(venue['validUntil'])<=finished:
+                event['venue']={'status':'unavailable','reason':'venue_evidence_expired'}
+                event['weather'].clear();event['weather'].update(status='unavailable',reason='venue_evidence_expired')
+            weather=event['weather']
+            if weather.get('status')=='available' and weather.get('validUntil') and timestamp(weather['validUntil'])<=finished:
+                weather.clear();weather.update(status='unavailable',reason='weather_expired_during_report')
             research = event['research']
             if any(timestamp(s['validUntil']) <= finished for s in research.get('sources',[])):
                 from .nfl_research import unavailable

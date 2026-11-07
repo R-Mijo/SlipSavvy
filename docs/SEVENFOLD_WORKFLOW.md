@@ -52,6 +52,7 @@ Starting main: `a25b4c9cd296e51343537999a7b3373c1c10593a`.
 | Merged #8 | Offered alternate spread/total retrieval, cache and shared weighted reservations. No mobile alternate selector/optimizer. |
 | This branch, pending review | On-demand NFL passing/rushing main and alternate lines, mixed-market selection and exact prop matching in reports. Model/joint price/settlement remain unknown. |
 | NFL research branch, pending review | Free schedule/roster/injury snapshots and phone display, exact event/GSIS matching, distinct file times and missing/stale/unknown coverage. No confirmation of current participation or probability adjustment. |
+| Venue/weather branch, pending review | Exact event venue ID/name plus reviewed sources; Lumen Field NWS weather, fixed-indoor U.S. Bank Stadium and unresolved-retractable Lucas Oil Stadium. Other venues unavailable; no probability adjustment. |
 | Separate unpublished experiment | Earlier team-only price-distance builder. No files from it are included here; its one-game-per-leg rule and price-only generation are not accepted product behavior. |
 | Unfinished | Filter-first research/generation; complete injury/context/weather feeds; evaluated forecasts; combined SGP offers; settlement-aware fixed-capital comparisons; six-game reports; share/import; production accounts/billing; iPhone/device release checks. |
 
