@@ -102,7 +102,7 @@ export default function AnalyzeParlay({picks,timeZone}:{picks:Pick[];timeZone:st
         <Text style={s.note}>Your target is passed to the report. Priced alternatives and payout comparisons are still being built.</Text>
       </View>:null}
       <Action title={loading?'Analyzing…':'Analyze my parlay'} id="analyze-parlay" disabled={!picks.length||loading} onPress={()=>{void analyze();}}/>
-      {loading?<><Text accessibilityRole="status" style={s.note}>Checking your lines and gathering the available evidence…</Text><Action title="Cancel analysis" id="cancel-analysis" secondary onPress={cancel}/></>:null}
+      {loading?<><Text role="status" accessibilityLiveRegion="polite" style={s.note}>Checking your lines and gathering the available evidence…</Text><Action title="Cancel analysis" id="cancel-analysis" secondary onPress={cancel}/></>:null}
       {error?<Text accessibilityRole="alert" testID="report-error" style={s.error}>{error}</Text>:null}
     </View>
     {active&&!fresh?<Text accessibilityRole="alert" testID="report-expired" style={s.error}>This report needs a refresh. Analyze again with current pregame lines.</Text>:null}

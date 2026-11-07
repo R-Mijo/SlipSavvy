@@ -39,7 +39,7 @@ export default function BrowseOdds({onChoose,selectedIds=[],timeZone}:{onChoose:
     <View style={s.row}>{sports.map(v=>button(v.title,()=>{if(v.key!==sport){setSport(v.key);setEvent('');setDate('');setPart('');setPage(0);}},'sport-'+v.key,sport===v.key))}</View>
     {sport?<View style={s.row}>{([['h2h','Moneyline'],['spreads','Spread'],['totals','Total']] as const)
       .map(([key,label])=>button(label,()=>setMarket(key),'market-'+key,market===key))}</View>:null}
-    {loading?<Text accessibilityRole="status" style={s.note}>Loading games…</Text>:null}
+    {loading?<Text role="status" accessibilityLiveRegion="polite" style={s.note}>Loading games…</Text>:null}
     {error?<Text style={s.error} accessibilityRole="alert">{error}</Text>:null}
     {!loading&&!error&&sport&&!games.length?<Text style={s.note}>No current pregame lines are available. Try another market or refresh.</Text>:null}
     {!loading&&!error&&dates.length?<>
