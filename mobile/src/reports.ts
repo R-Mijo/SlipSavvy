@@ -177,7 +177,7 @@ export async function fetchReports(input:ReportInput,signal:AbortSignal):Promise
   const base=process.env.EXPO_PUBLIC_ODDS_API_URL;
   if(!base||!/^https:\/\//.test(base))throw Error('Game reports are not connected yet.');
   const response=await fetch(base.replace(/\/$/,'')+'/api/game-reports',{method:'POST',signal,
-    headers:{'Content-Type':'application/json',Authorization:'Bearer '+(process.env.EXPO_PUBLIC_ODDS_PREVIEW_TOKEN??'')},body:JSON.stringify(input)});
+    headers:{'Content-Type':'application/json','X-SlipSavvy-Weather-Schema':'nws-v1',Authorization:'Bearer '+(process.env.EXPO_PUBLIC_ODDS_PREVIEW_TOKEN??'')},body:JSON.stringify(input)});
   const raw=await response.text();if(raw.length>262144)throw Error('The game report was too large. Try again.');
   let data:unknown;try{data=JSON.parse(raw);}catch{throw Error('The report service is unavailable. Try again shortly.');}
   if(!response.ok){if(response.status===401)throw Error('Preview access needs to match the server settings.');

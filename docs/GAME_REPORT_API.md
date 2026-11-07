@@ -67,6 +67,8 @@ NFL reports add `events[].research`: partial/unavailable status, exact schedule 
 
 ## Event venue and NWS kickoff weather
 
+The updated phone sends `X-SlipSavvy-Weather-Schema: nws-v1`. Omitted header defaults to `legacy-v1`; an older phone receives an explicitly unavailable NWS weather state instead of a new value format its reader would reject. Other report fields, existing Open-Meteo weather and indoor/unavailable states remain readable. `weatherSchema` identifies the selected response capability. Unsupported explicit capability values are rejected before research. See [compatibility details](VENUE_WEATHER.md#installed-client-compatibility).
+
 Additive `events[].venue` matches the reported event stadium ID/name to independently reviewed roof/coordinate facts, with source and validity times. The current pilot covers Lumen Field forecasts, fixed-indoor U.S. Bank Stadium and unknown-retractable Lucas Oil Stadium. Other venues do not inherit a home-city forecast. NWS available forecasts preserve update versus retrieval time, exact kickoff hour, nullable unit-bearing values, wind ranges and missing fields. No probability change. Default free `REPORT_WEATHER_MODE=nws`; explicit disabled and existing Open-Meteo modes are respected. See [coverage, schema and bounds](VENUE_WEATHER.md).
 
 ## Response
@@ -151,7 +153,7 @@ An optional entry `forecast` has `modelId`, `modelVersion`, `generatedAt`, `vali
 
 ### Weather
 
-`OpenMeteoWeather` uses a fixed provider host and verified server-owned coordinates. Default `REPORT_WEATHER_MODE=disabled` performs no weather network calls. `evaluation` selects the free endpoint **only where use qualifies under its noncommercial terms**. `commercial` selects the customer endpoint and requires server-only `OPEN_METEO_API_KEY`. No paid plan is activated by this code. Commercial product/research usage requires an appropriate provider agreement, not merely setting the evaluation flag.
+The default `REPORT_WEATHER_MODE=nws` uses the free NWS adapter and reviewed venue catalog described above. Explicit `REPORT_WEATHER_MODE=disabled` performs no weather network calls. The retained `OpenMeteoWeather` adapter uses a fixed provider host and verified server-owned coordinates: `evaluation` selects the free endpoint **only where use qualifies under its noncommercial terms**; `commercial` selects the customer endpoint and requires server-only `OPEN_METEO_API_KEY`. No paid plan is activated by this code. Commercial Open-Meteo usage requires an appropriate provider agreement, not merely setting the evaluation flag.
 
 Weather uses the forecast hour containing kickoff UTC, with explicit °F, mph and percent units; it is a forecast, not an observation. Missing kickoff hours, wrong units, provider failures and games outside the six-day supported window return unavailable. Known indoor or confirmed closed-roof games return `not_applicable` without fetching. Unknown venue/roof returns unavailable. Relevant outdoor weather is researched once per event/request and cached for five minutes across reports (32-entry LRU). There is no automatic weather-to-win-probability adjustment.
 

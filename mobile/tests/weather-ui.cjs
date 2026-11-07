@@ -11,7 +11,10 @@ test('mobile weather displays ranged winds and missing gusts with actual venue s
  const a=await setup(async(url,options)=>{
   const u=new URL(url);
   if(u.pathname==='/api/sports')return response({sports:[{key:'americanfootball_nfl',title:'NFL'}]});
-  if(u.pathname==='/api/game-reports')return response(current);
+  if(u.pathname==='/api/game-reports'){
+    assert.equal(options.headers['X-SlipSavvy-Weather-Schema'],'nws-v1');
+    return response(current);
+  }
   return response({quotes:[report.legs[0].quote]});
  });
  try{

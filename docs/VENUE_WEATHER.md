@@ -31,4 +31,8 @@ NWS `values` use explicit `temperatureF`, `precipitationChance`, `windSpeedMph` 
 
 The phone validates the event venue/source/expiry and forecast hour/units/ranges/missing values, displays source times and roof uncertainty, and expires reports when evidence expires. Older responses and the existing Open-Meteo schema remain supported.
 
+### Installed-client compatibility
+
+NWS ranges and null fields do not fit the old v1 Open-Meteo-only weather reader. A request without a capability header receives `weatherSchema: legacy-v1`: NWS available weather is withheld as `unavailable / client_update_required_for_nws_weather` in both shared events and leg reports, leaving the rest of the report readable. It is not converted to fabricated numeric fields. The new phone sends `X-SlipSavvy-Weather-Schema: nws-v1` to request complete NWS weather; a new phone can still read older backend responses. Unsupported explicit capabilities fail before research starts. Projection creates response objects without modifying the shared source cache. Regression tests include the frozen report reader from main `a25b4c9` and both actual Python wire formats. Backend deployment still does not update an installed APK.
+
 Automated verification uses synthetic provider files/forecasts and Python-produced mobile fixtures. A separate public-source smoke check exercised the actual free schedule → Lumen Field catalog → NWS hourly path. It did not query sportsbook prices, validate a model, deploy the service, create an APK or prove physical-device execution. Broader verified venue coverage, current retractable-roof evidence, performance/usage data, evaluated probabilities and actual-priced settlement comparisons remain unfinished.
