@@ -41,7 +41,10 @@ def request():
 
 def fixture():
     odds = OddsService('synthetic-only', fetch=lambda route, params: event() if '/events/' in route else [event()], clock=lambda: NOW)
-    return ReportService(odds, context=ContextCatalog(''), clock=lambda: NOW).build(request())
+    result = ReportService(odds, context=ContextCatalog(''), clock=lambda: NOW, research=False).build(request())
+    # Keep the original v1 fixture usable by clients predating the additive research field.
+    for item in result['events']: item.pop('research',None)
+    return result
 
 
 class PlayerPropsTests(unittest.TestCase):
@@ -171,7 +174,7 @@ class PlayerPropsTests(unittest.TestCase):
         self.assertEqual(len(errors), 1)
 
     def test_report_mixes_four_markets_in_one_event_research_without_a_fake_forecast(self):
-        odds = self.service(); service = ReportService(odds, context=ContextCatalog(''), clock=lambda: NOW)
+        odds = self.service(); service = ReportService(odds, context=ContextCatalog(''), clock=lambda: NOW, research=False)
         result = service.build(request())
         self.assertEqual([l['matchStatus'] for l in result['legs']], ['matched']*4)
         self.assertEqual(len(result['events']), 1)
@@ -196,7 +199,7 @@ class PlayerPropsTests(unittest.TestCase):
 
     def test_report_will_not_match_another_player_or_changed_price(self):
         data = request(); data['legs'][-1]['playerName'] = 'Not In Feed'
-        service = ReportService(self.service(), context=ContextCatalog(''), clock=lambda: NOW)
+        service = ReportService(self.service(), context=ContextCatalog(''), clock=lambda: NOW, research=False)
         result = service.build(data)
         self.assertEqual(result['legs'][-1]['matchStatus'], 'quote_unavailable')
         data = request(); data['legs'][-1]['americanOdds'] = '100'

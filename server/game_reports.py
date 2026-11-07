@@ -149,10 +149,12 @@ def forecast_snapshot(context, event, now):
 
 
 class ReportService:
-    def __init__(self, odds, context=None, weather=None, clock=time.time, monotonic=time.monotonic):
+    def __init__(self, odds, context=None, weather=None, clock=time.time, monotonic=time.monotonic, research=None):
+        from .nfl_research import NflResearch
         self.odds = odds
         self.context = context if context is not None else ContextCatalog()
         self.weather = weather if weather is not None else OpenMeteoWeather()
+        self.research = NflResearch(clock=clock,monotonic=monotonic) if research is None else research
         self.clock, self.monotonic = clock, monotonic
         self.gate = threading.BoundedSemaphore(1)
         self.requests = deque()
@@ -276,8 +278,16 @@ class ReportService:
                 except Exception:
                     context = {'status': 'unavailable', 'reason': 'context_provider_unavailable',
                                'evidence': [], 'facts': [], 'venue': None, 'forecast': None}
+                from .nfl_research import unavailable
+                try:
+                    names = list(dict.fromkeys(l['playerName'] for l in request['legs']
+                        if l.get('playerName') and (l['sport'],l['eventId']) == (leg['sport'],leg['eventId'])))
+                    research = self.research.lookup(event,names,now,timeout=self._remaining(deadline)) if self.research else unavailable('research_disabled')
+                except Exception:
+                    research = unavailable('research_provider_unavailable')
                 event.update(context={k: context[k] for k in ('status', 'reason', 'evidence', 'facts', 'venue')},
                              gameScript=forecast_snapshot(context, event, now),
+                             research=research,
                              weather=self._weather(event, context, now, deadline))
                 events[event_key] = event
         for leg, (status, q) in zip(request['legs'], matches):
@@ -286,6 +296,10 @@ class ReportService:
         # A network operation may straddle the start/staleness boundary.
         finished = self.clock()
         for event in events.values():
+            research = event['research']
+            if any(timestamp(s['validUntil']) <= finished for s in research.get('sources',[])):
+                from .nfl_research import unavailable
+                event['research'] = unavailable('research_expired_during_report')
             context = event['context']
             context['evidence'] = [e for e in context['evidence'] if timestamp(e['validUntil']) > finished]
             if not context['evidence'] and context['status'] == 'available':
@@ -306,10 +320,17 @@ class ReportService:
                 script.update(status='unavailable', reason='evidence_expired_during_report',
                               mostLikelyScenarioId=None, scenarios=[], selections=[])
         for report in reports:
+            event = events.get(report['eventRef'])
+            if event and event['research'].get('reason') == 'research_expired_during_report':
+                report['seven'][0].update(status='needs_data',bullets=['Research expired while this report was being prepared. Refresh before relying on it.'])
+                if report['selection'].get('playerName'):
+                    report['seven'][4].update(status='needs_data',bullets=[report['legImplication']+' The NFL research snapshot expired; refresh before relying on it.'])
             if report['gameScript'] and report['gameScript']['status'] != 'model_supplied':
+                had_probability = report['modelWinProbability'] is not None
                 report['modelWinProbability'] = None
                 report['probabilityBasis'] = 'unavailable'
-                report['seven'][4].update(status='needs_data', bullets=[report['legImplication'] + ' No supported win estimate is available.'])
+                if had_probability:
+                    report['seven'][4].update(status='needs_data', bullets=[report['legImplication'] + ' No supported win estimate is available.'])
             if report['eventRef']:
                 valid_ids = {e['id'] for e in events[report['eventRef']]['context']['evidence']}
                 valid_ids.add('quote:' + report['id'])
@@ -367,6 +388,14 @@ class ReportService:
             ('needs_data' if good else 'blocked', 'Whole-ticket value remains unestablished without joint model support and a combined quote.' if good else 'Resolve selection identity, price or freshness before using this leg.')]
         if status == 'price_changed':
             finding[0] = 'blocked', 'The current quote differs from the requested price; customer reconfirmation is required.'
+        research = event.get('research') if event else None
+        if good and research and research['mapping']:
+            mapping = research['mapping']
+            finding[0] = ('needs_data', f"Schedule matched NFL week {mapping['week']}. Injury/roster data are file snapshots, not confirmed participation.")
+            if leg.get('playerName'):
+                player = next((p for p in research['players'] if p['requestedName']==leg['playerName']),None)
+                if player:
+                    finding[4] = ('needs_data', implication + f" Player mapping: {player['status']}; injury snapshot: {player['injury']['status']}. No supported probability adjustment.")
         evidence_ids = [e['id'] for e in event['context']['evidence']] if event else []
         quote_refs = ['quote:' + leg['id']] if quote else []
         seat_refs = [quote_refs + evidence_ids, [], [], quote_refs, quote_refs + evidence_ids, [], quote_refs + evidence_ids]

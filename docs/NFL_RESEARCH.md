@@ -1,0 +1,34 @@
+# NFL research snapshots
+
+This adapter connects free nflverse schedule, roster and injury files to the existing authenticated game-report route. It is a partial research source, not a model, complete availability feed or recommendation service. The phone requires no new key or setup. Server default `NFL_RESEARCH_MODE=nflverse` enables it for analyzed NFL games; `disabled` prevents its network requests. Other sports do not fetch these files.
+
+## Sources, permissions and transformations
+
+The only selected files are `schedules/games.csv`, `rosters/roster_{season}.csv` and `injuries/injuries_{season}.csv` in [nflverse-data releases](https://github.com/nflverse/nflverse-data/releases). The repository publishes a [CC BY 4.0 license](https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md); attribution and the license URL accompany each snapshot in the report and phone. Schedule attribution includes maintainer Lee Sharpe. This adapter parses, filters, matches identities and bounds displayed rows; it does not redistribute raw files, logos, headshots, PFR usage or FTN charting. Dataset-specific/upstream provenance still matters; this is not blanket commercial clearance.
+
+Primary definitions: [schedules](https://nflreadr.nflverse.com/reference/load_schedules.html), [Eastern kickoff convention](https://github.com/nflverse/nfldata/blob/master/DATASETS.md), [rosters](https://nflreadr.nflverse.com/reference/load_rosters.html), [injury fields](https://nflreadr.nflverse.com/articles/dictionary_injuries.html). Direct checks on November 7, 2026 found no per-record update field in the current injury CSV, although an older documentation example includes one. Actual current fields take precedence over that historical example.
+
+## Identity and coverage
+
+- Exact provider team names map to an explicit 32-team abbreviation table. No abbreviations, aliases or fuzzy team-name guesses are accepted from customers. Match designated home/away plus exact scheduled kickoff, using IANA `America/New_York` for source Eastern time, with DST. Require one matching game ID/season/week, no recorded scores and a start within eight days. Ambiguous, rescheduled, completed, unmapped and non-regular-season games are unavailable.
+- Selected prop player names must exactly match a unique roster snapshot name/GSIS identity for one of those teams. No initials/alias/suffix repair. Only source roster weeks at or before the event week are considered. Preserve roster week and raw status; even `ACT` is not confirmation of participation or a starting role. Ambiguous names/IDs/rows are withheld.
+- Injury matching requires season, regular-season type, week, team and GSIS ID, with a consistent full name. Duplicate/conflicting records are withheld. A missing player row is `not_listed` only if usable rows establish some team/week coverage; otherwise `coverage_unknown`. Neither means healthy. No injury rows or stale/missing files never imply everyone is available.
+- Up to 32 unique team/week injury rows are displayed, with total count/truncation stated. Selected players retain their own explicit status regardless of list truncation. Rosters are fetched only when props request player mapping. Several same-game legs reuse one research result.
+
+## Time and transport
+
+Each source preserves `providerUpdatedAt` from release-asset metadata, `retrievedAt` for downloaded bytes, `metadataCheckedAt` for the last file-version check, `validUntil`, and verified `sha256`. `recordUpdatedAt` is **null** and `timeBasis` explicitly says file snapshot, not player confirmation. Reusing bytes does not update their retrieval time. Reports remain partial even when all three files load.
+
+Anonymous GitHub release metadata is cached for 15 minutes. CSV versions are cached by asset ID, update time, size and SHA-256; changed bytes must match the release digest. A same-size replacement cannot silently inherit old metadata. Conservative file-age limits are two hours for schedules, 48 hours for rosters and 36 hours for injuries. These are application acceptance bounds, not provider guarantees or confirmation that every row is current. Source expiry invalidates the research before return and expires the phone report.
+
+Metadata host and release paths are fixed in code. Downloads allow one explicit redirect from the exact public release path to `release-assets.githubusercontent.com/github-production-release-asset/...`, over HTTPS without userinfo, unusual ports or fragments. No client URL is fetched; signed CDN URLs are not persisted, returned or echoed. No GitHub credential is sent. Reads have deadlines, byte limits (2 MiB metadata / 4 MiB CSV), column/field/row bounds, a shared lock/cache and a 60-second failure cooldown. Six CSV versions are retained per process. This uses free anonymous GitHub capacity; outages/rate limits remain unavailable, never trigger a purchase or fallback to a paid feed. Odds-provider credits are untouched.
+
+The existing 20-second whole-report deadline, body/response bounds, preview authentication and quote freshness checks still apply. Cold or partial source failures remain visible. There is no background scrape of every browsed event. File/metadata caches are process-local and not durable as-of history.
+
+## Report and phone contract
+
+Additive `events[].research` in schema v1 contains status/reason, exact schedule mapping, per-dataset coverage, sources, selected-player mappings, bounded team injuries, count/truncation and warnings. Existing curated context/forecast/venue remains separate. The phone validates identities, source URLs, timestamps, states and bounds, supports older responses without this field, and displays snapshots as incomplete research. Jeeves/Lisa findings acknowledge schedule/roster matching and unresolved availability. Expired research removes the snapshot and its old findings.
+
+No numerical forecast, injury adjustment, joint price, healthy-player assertion, starter confirmation or alternative recommendation is produced. Schedule `roof`, venue, historical temperature/wind, scores and market prices are not promoted to current venue/roof/weather evidence or forecasts. Next inputs remain verified event venue/roof and weather, as-of performance/role data and independently evaluated models, followed by settlement-aware actual-priced comparisons.
+
+The server requirements install the free `tzdata` package for cross-platform IANA time zones. Library users may install the `research` extra; the core calculator keeps its dependency-free installation. Automated tests use synthetic files and injected transport only. A separate public-source smoke check verified schedule matching, roster mapping, injury retrieval and checksum validation; it is not live sportsbook matching, a forecast evaluation, a deployed service check or a physical-device test.

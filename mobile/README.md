@@ -18,6 +18,7 @@ npx expo install --check
 npm run export
 node tests/ui.cjs
 node tests/odds-ui.cjs
+node tests/props-ui.cjs
 npm start
 ```
 
@@ -31,6 +32,7 @@ For connected data, set `EXPO_PUBLIC_ODDS_API_URL` to the HTTPS backend and `EXP
 - Analyze sends exact provider event IDs and structured market/outcome/point/player fields to `POST /api/game-reports`. Preview limits are eight legs, four games and four sport/market combinations. These are inherited server bounds, not a promise of unlimited coverage.
 - NFL games expose on-demand main/alternate passing and rushing yards. Choose the market and load offered player lines; switch player/category from the returned choices without typing or another request. Mix props with team lines, including several legs in one game. Exact provider player descriptions are retained, not promoted to verified roster IDs. Participation/settlement and model estimates remain unknown. These are offered selections, not automated researched recommendations. See [full workflow and unfinished stages](../docs/SEVENFOLD_WORKFLOW.md).
 - Expand mini reports for exact line/price, matchup/local date, game-script status, applicable weather, all seven short responses (Jeeves, Luna, Pax, Winston, Lisa, Diego, Gus), sources and timestamps. Same-game legs share event research and receive leg-specific findings. No memos.
+- NFL reports add [free schedule, roster and injury snapshots](../docs/NFL_RESEARCH.md), with exact matching, source-file update versus retrieval times, reported practice/game status and explicit missing/stale/coverage-unknown states. Roster codes are not confirmation of participation; not listed does not mean healthy. This remains incomplete research without a probability adjustment or forecast. No new customer key is required.
 - Changing picks, stake or return target cancels pending work and hides earlier reports. Cancelled/obsolete results cannot reappear. Expired quotes/evidence require another analysis. A changed or unavailable price is flagged rather than substituted into a recommendation.
 
 The seven responses currently consist of deterministic responsibility-based evidence/math checks, not seven independent researched AI forecasts. With default server settings, context, venue/weather and model scripts will often be unavailable; that missing status is shown. See the [backend contract and source dependencies](../docs/GAME_REPORT_API.md). Whole-ticket win estimates, offered combined parlay prices, alternate-line optimization and split-ticket comparisons remain unavailable. The UI does not claim a smart bet or supported edge from missing research.
@@ -39,6 +41,6 @@ The seven responses currently consist of deterministic responsibility-based evid
 
 Current backend coverage: NFL, NCAAF, NBA, NCAAB, NHL and MLB; FanDuel and DraftKings; moneyline, spread and total. Current quotes are cached and can change. Actual sportsbooks must confirm availability and prices. Eight lines need not form a valid single-book ticket; no offered joint quote is assumed.
 
-No screenshot/share import, trained prediction model, same-game joint model, automatic injury/lineup research, billing, account or wager placement is supplied by this UI. Existing math/manual-review utilities remain tested as libraries but are no longer entry flows. Entries and time-zone preferences clear on reload. The service receives selected lines and stake/return choices when analyzing; provider/source requests and infrastructure behavior need the release privacy audit. Source links open only on a user tap.
+No screenshot/share import, trained prediction model, same-game joint model, complete current injury/lineup coverage, billing, account or wager placement is supplied by this UI. Existing math/manual-review utilities remain tested as libraries but are no longer entry flows. Entries and time-zone preferences clear on reload. The service receives selected lines and stake/return choices when analyzing; provider/source requests and infrastructure behavior need the release privacy audit. Source links open only on a user tap.
 
 TypeScript, unit tests, all-platform Expo exports and exported-web interaction checks cover this revision. They do not replace native layout, accessibility, Hermes execution, or physical iPhone/Android tests. The [milestone record](../docs/MOBILE_MILESTONE.md) preserves earlier history and current boundaries. No cloud build, deployment or store submission is started by these checks.

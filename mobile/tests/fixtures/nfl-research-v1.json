@@ -1,0 +1,108 @@
+{
+  "status": "partial",
+  "reason": null,
+  "mapping": {
+    "status": "matched",
+    "gameId": "2026_10_MIA_BUF",
+    "season": 2026,
+    "week": 10,
+    "seasonType": "REG",
+    "homeTeamCode": "BUF",
+    "awayTeamCode": "MIA",
+    "startAt": "2026-11-08T18:00:00+00:00"
+  },
+  "sources": [
+    {
+      "id": "nflverse-schedule-2026",
+      "dataset": "schedule",
+      "sourceUrl": "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
+      "licenseUrl": "https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md",
+      "attribution": "Synthetic fixture; nflverse CC BY 4.0 shape",
+      "providerUpdatedAt": "2026-11-07T19:00:00+00:00",
+      "retrievedAt": "2026-11-07T19:59:40+00:00",
+      "metadataCheckedAt": "2026-11-07T19:59:40+00:00",
+      "validUntil": "2026-11-07T20:14:40+00:00",
+      "recordUpdatedAt": null,
+      "timeBasis": "file_snapshot_not_record_confirmation",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "nflverse-injuries-2026",
+      "dataset": "injuries",
+      "sourceUrl": "https://github.com/nflverse/nflverse-data/releases/download/injuries/injuries_2026.csv",
+      "licenseUrl": "https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md",
+      "attribution": "Synthetic fixture; nflverse CC BY 4.0 shape",
+      "providerUpdatedAt": "2026-11-07T19:00:00+00:00",
+      "retrievedAt": "2026-11-07T19:59:40+00:00",
+      "metadataCheckedAt": "2026-11-07T19:59:40+00:00",
+      "validUntil": "2026-11-07T20:14:40+00:00",
+      "recordUpdatedAt": null,
+      "timeBasis": "file_snapshot_not_record_confirmation",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "id": "nflverse-roster-2026",
+      "dataset": "roster",
+      "sourceUrl": "https://github.com/nflverse/nflverse-data/releases/download/rosters/roster_2026.csv",
+      "licenseUrl": "https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md",
+      "attribution": "Synthetic fixture; nflverse CC BY 4.0 shape",
+      "providerUpdatedAt": "2026-11-07T19:00:00+00:00",
+      "retrievedAt": "2026-11-07T19:59:40+00:00",
+      "metadataCheckedAt": "2026-11-07T19:59:40+00:00",
+      "validUntil": "2026-11-07T20:14:40+00:00",
+      "recordUpdatedAt": null,
+      "timeBasis": "file_snapshot_not_record_confirmation",
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    }
+  ],
+  "coverage": {
+    "schedule": "matched",
+    "injuries": "file_snapshot",
+    "roster": "file_snapshot"
+  },
+  "players": [
+    {
+      "requestedName": "Synthetic Runner",
+      "status": "roster_snapshot",
+      "gsisId": "00-0000001",
+      "team": "BUF",
+      "rosterWeek": 10,
+      "rosterStatus": "ACT",
+      "injury": {
+        "status": "reported",
+        "record": {
+          "gsisId": "00-0000001",
+          "team": "BUF",
+          "playerName": "Synthetic Runner",
+          "position": "RB",
+          "gameStatus": "Questionable",
+          "practiceStatus": "Limited Participation in Practice",
+          "primaryInjury": "Synthetic test injury",
+          "practiceInjury": "Synthetic test injury",
+          "recordUpdatedAt": null
+        }
+      }
+    }
+  ],
+  "teamInjuries": [
+    {
+      "gsisId": "00-0000001",
+      "team": "BUF",
+      "playerName": "Synthetic Runner",
+      "position": "RB",
+      "gameStatus": "Questionable",
+      "practiceStatus": "Limited Participation in Practice",
+      "primaryInjury": "Synthetic test injury",
+      "practiceInjury": "Synthetic test injury",
+      "recordUpdatedAt": null
+    }
+  ],
+  "listedInjuryCount": 1,
+  "injuriesTruncated": false,
+  "warnings": [
+    "No supported probability adjustment is derived from these snapshots.",
+    "File snapshots do not confirm current participation, starters or game-time availability.",
+    "Not listed in an injury file does not establish that a player is healthy.",
+    "Venue, actual roof state, weather, usage and recent performance are not supplied by this adapter."
+  ]
+}

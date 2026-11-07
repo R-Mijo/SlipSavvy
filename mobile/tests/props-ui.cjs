@@ -7,13 +7,14 @@ const {setup,response,shifted}=require('./app-helper.cjs');
 async function app(){
  const raw=JSON.parse(await fs.readFile(path.join(__dirname,'fixtures/player-props-v1.json'),'utf8'));
  const data=shifted(raw,Date.now()-Date.parse(raw.generatedAt));
- const state={calls:[],fail:false,empty:false,deferred:null,requests:[]};
+ const state={calls:[],fail:false,empty:false,deferred:null,requests:[],research:null};
  const a=await setup(async(url,options)=>{
   const u=new URL(url);state.calls.push(u.pathname);
   if(u.pathname==='/api/sports')return response({sports:[{key:'americanfootball_nfl',title:'NFL'}]});
   if(u.pathname==='/api/game-reports'){
    const req=JSON.parse(options.body);state.requests.push(req);
    const r=structuredClone(data);r.assessment.comparisonContext={totalStake:req.totalStake,minimumTotalReturn:null,stakeBasis:'fixed_total_capital'};
+   if(state.research)r.events[0].research=structuredClone(state.research);
    r.legs=req.legs.map(l=>{const original=data.legs.find(x=>x.selection.market===l.market);return {...original,id:l.id,selection:l,quoteSource:{...original.quoteSource,id:'quote:'+l.id}};});
    return response(r);
   }
@@ -70,4 +71,25 @@ test('an old game response cannot populate the next selected game',async()=>{
   assert.equal(Boolean(a.d.querySelector('[data-testid^="prop-quote-"]')),false);
   assert.equal(Boolean(a.find('pick-0')),false);
  }finally{if(resolve)resolve(response({quotes:[]}));a.close();}
+});
+
+test('NFL research shows reported injury and file times without asserting healthy or confirmed participation',async()=>{
+ const a=await app();try{
+  const raw=JSON.parse(await fs.readFile(path.join(__dirname,'fixtures/nfl-research-v1.json'),'utf8'));
+  a.state.research=shifted(raw,Date.now()-Date.parse('2026-11-07T20:00:00Z'));
+  const r=a.state.research;r.mapping.startAt=a.data.events[0].startAt;
+  r.players[0].requestedName='Synthetic Player A';r.players[0].injury.record.playerName='Synthetic Player A';
+  r.teamInjuries[0].playerName='Synthetic Player A';
+  await a.click('load-props');await a.wait('prop-player-0');await a.click('prop-quote-'+a.data.legs[2].quote.id);
+  await a.click('analyze-parlay');await a.wait('nfl-research');
+  assert.match(a.find('player-research').textContent,/Questionable/);
+  assert.match(a.find('player-research').textContent,/not confirmation that the player will play/);
+  await a.click('research-toggle');await a.wait('research-details');
+  assert.match(a.find('research-details').textContent,/File updated.*retrieved/);
+  assert.match(a.find('research-details').textContent,/Per-player confirmation time is unavailable/);
+  assert.match(a.find('research-details').textContent,/does not establish that a player is healthy/);
+  r.players[0].injury={status:'not_listed',record:null};r.teamInjuries=[];r.listedInjuryCount=0;
+  await a.click('analyze-parlay');await a.wait('player-research');
+  assert.match(a.find('player-research').textContent,/Not listed; health and participation are unknown/);
+ }finally{a.close();}
 });
