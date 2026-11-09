@@ -68,7 +68,7 @@ class PlayerPropsTests(unittest.TestCase):
         self.assertEqual(a['updatedAt'], iso(NOW-10))
         self.assertEqual(a['fetchedAt'], iso(NOW))
         self.assertEqual(a['opposingAmericanOdds'], '-105')
-        self.assertEqual(q[-1]['settlement'], {'status': 'rules_required', 'pushPossible': True,
+        self.assertEqual(q[-1]['settlement'], {'status': 'rules_required', 'thresholdSemantics': 'over_under_integer', 'pushPossible': True,
                                               'nonParticipation': 'unknown', 'overtime': 'unknown'})
         alt = normalize_props(event(), SPORT, 'game-a', NOW, ['player_rush_yds_alternate'])
         self.assertTrue(all(x['market'] == 'player_rush_yds_alternate' for x in alt))
@@ -184,7 +184,7 @@ class PlayerPropsTests(unittest.TestCase):
         for leg in result['legs']:
             self.assertIsNone(leg['modelWinProbability'])
             self.assertEqual(len(leg['seven']), 7)
-        self.assertIn('participation', result['legs'][-1]['legImplication'])
+        self.assertIn('participation', result['legs'][-1]['legImplication'].lower())
         self.assertEqual(result['assessment']['alternatives'], [])
         self.assertIsNone(result['assessment']['offeredParlayDecimalPrice'])
 

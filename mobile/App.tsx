@@ -6,7 +6,7 @@ import BrowseOdds from './src/BrowseOdds';
 import TimeZoneChoice from './src/TimeZoneChoice';
 import {deviceZone} from './src/games';
 import AnalyzeParlay from './src/AnalyzeParlay';
-import {quotePick,type Quote} from './src/odds';
+import {quotePick,propThresholdNotice,type Quote} from './src/odds';
 import {replacePick} from './src/review';
 import type {Pick} from './src/math';
 
@@ -36,6 +36,7 @@ export default function App(){
           <View style={s.row}><Text style={s.cardTitle}>Your parlay</Text><Text style={s.lime} testID="parlay-count">{count}/8 legs</Text></View>
           {!count?<Text style={s.body}>Choose a sport, date and game below to add your first line.</Text>:picks.map((pick,i)=><View style={s.pick} key={pick.id} testID={'pick-'+i}>
             <View style={s.row}><Text style={[s.selection,s.flex]}>{pick.label}</Text><Text style={s.price}>{Number(pick.odds)>0?'+':''}{pick.odds}</Text></View>
+            {pick.quote&&propThresholdNotice(pick.quote)?<Text style={s.body}>{propThresholdNotice(pick.quote)}</Text>:null}
             <Text style={s.note}>{pick.quote?.event??pick.event}</Text>
             <View style={s.row}><Text style={[s.note,s.flex]}>{pick.quote?.bookmaker??pick.source}</Text>
               <Pressable testID={'remove-'+i} accessibilityRole="button" accessibilityLabel={'Remove '+pick.label} style={s.remove}

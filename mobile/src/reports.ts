@@ -1,5 +1,5 @@
 import { american, number, type Pick } from './math';
-import { checkQuote, isProp } from './odds';
+import { checkQuote, isProp, propThresholdNotice } from './odds';
 import { decodeResearch,type Research } from './research';
 import { decodeVenue,type Venue } from './venue';
 
@@ -149,13 +149,18 @@ export function decodeReports(value:unknown,input:ReportInput):GameReports {
       source={sourceUrl:url,updatedAt:date(s.updatedAt),retrievedAt:date(s.retrievedAt)};
     }else if(r.price!==null||r.quoteSource!==null)throw Error('A quote is required for price facts.');
     const estimate=r.modelWinProbability===null?null:probability(r.modelWinProbability);
+    const thresholdNotice=propThresholdNotice(expected);
+    if(thresholdNotice&&estimate!==null)throw Error('An unverified prop threshold cannot have a supported win estimate.');
     if(estimate!==null&&(r.matchStatus!=='matched'||event?.gameScript.status!=='model_supplied'||r.probabilityBasis!=='operator_supplied_model'))throw Error('Unsupported model probability.');
     const seven=list(r.seven,7).map((v,i)=>{const s=record(v);
       if(s.seat!==i+1||s.name!==seats[i]||!['ok','needs_data','blocked','not_applicable'].includes(s.status))throw Error('Invalid Sevenfold response.');
       const bullets=list(s.bullets,2).map(v=>str(v,1000));if(!bullets.length)throw Error('Missing Sevenfold response.');
       return {seat:s.seat,name:s.name,status:s.status,bullets,evidenceIds:list(s.evidenceIds,25).map(v=>str(v,120))};});
     if(seven.length!==7)throw Error('All seven responses are required.');
-    return {id:expected.id,matchStatus:r.matchStatus,eventRef:r.eventRef,legImplication:str(r.legImplication),modelWinProbability:estimate,
+    if(thresholdNotice)seven[4]={...seven[4],status:'needs_data',bullets:[thresholdNotice+' No supported win estimate is available.']};
+    const implication=str(r.legImplication);
+    return {id:expected.id,matchStatus:r.matchStatus,eventRef:r.eventRef,legImplication:thresholdNotice?
+      `${expected.playerName}: ${thresholdNotice} Participation, overtime, push and void rules need verification.`:implication,modelWinProbability:estimate,
       probabilityBasis:str(r.probabilityBasis,100),price,quote,quoteSource:source,seven};
   });
   return {schemaVersion:1,generatedAt:date(d.generatedAt),events,legs,assessment:{status:'insufficient_data',estimatedWinProbability:null,alternatives:[],

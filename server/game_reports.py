@@ -387,10 +387,15 @@ class ReportService:
                      'decimalFraction': {'numerator': decimal.numerator, 'denominator': decimal.denominator},
                      'breakEvenPercent': float(100 / decimal), 'basis': 'bookmaker_price_not_win_forecast'}
         if leg.get('playerName'):
+            from .prop_settlement import threshold_unverified, threshold_notice
             category = 'passing' if 'pass_yds' in leg['market'] else 'rushing'
-            implication = (f"Requires {leg['playerName']} to record {leg['outcome'].lower()} {leg['point']:g} {category} yards. "
-                           'An integer threshold can push; participation, overtime and void rules need verification. '
-                           'The provider player name is not a verified roster/player ID.')
+            if threshold_unverified(leg['market'], leg['point']):
+                probability = None
+                implication = f"{leg['playerName']} · {category} yards. " + threshold_notice(leg['market'], leg['outcome'], leg['point'])
+            else:
+                implication = f"Requires {leg['playerName']} to record {leg['outcome'].lower()} {leg['point']:g} {category} yards."
+            implication += (' Participation, overtime, push and void rules need verification. '
+                            'The provider player name is not a verified roster/player ID.')
         else:
             implication = {'h2h': f"Requires {leg['outcome']} to win, subject to sportsbook draw/settlement rules.",
                        'spreads': 'Selected team score plus the stated handicap must exceed the opponent score.',
