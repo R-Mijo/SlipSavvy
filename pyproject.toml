@@ -12,6 +12,9 @@ license = {text = "Apache-2.0"}
 authors = [{name = "Marco Armijo (R-Mijo)"}]
 dependencies = []
 
+[project.optional-dependencies]
+research = ["tzdata>=2025.2"]
+
 [project.scripts]
 slipsavvy = "slipsavvy.cli:main"
 

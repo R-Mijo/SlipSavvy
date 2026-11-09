@@ -5,6 +5,16 @@ export type Quote = { id:string; eventId:string; event:string; startAt:string; s
   playerName?:string; playerIdentityBasis?:string };
 export const propMarkets=['player_pass_yds','player_rush_yds','player_pass_yds_alternate','player_rush_yds_alternate'] as const;
 export const isProp=(market:string)=>propMarkets.some(m=>m===market);
+// Derive this from identity, including on older servers without settlement metadata.
+export function propThresholdNotice(q:{market:string;point?:number|null;outcome?:string}):string|null {
+  if(!isProp(q.market))return null;
+  const p=q.point;
+  if(typeof p!=='number'||!Number.isFinite(p)||p<=0||p>1000||!Number.isInteger(p*2))
+    return 'The yardage threshold is unsupported; its win, loss and refund boundary is unverified.';
+  if(q.market.endsWith('_alternate')&&Number.isInteger(p))
+    return `The feed lists ${q.outcome} ${p}. At exactly ${p} yards, the result is unverified: alternate markets can contain milestones or Over/Under lines. No win, loss or refund at that boundary is assumed.`;
+  return null;
+}
 export function marketLabel(market:string):string {
   return ({h2h:'Moneyline',spreads:'Spread',totals:'Total',player_pass_yds:'Passing yards',player_rush_yds:'Rushing yards',
     player_pass_yds_alternate:'Alternate passing yards',player_rush_yds_alternate:'Alternate rushing yards'} as Record<string,string>)[market]??market;

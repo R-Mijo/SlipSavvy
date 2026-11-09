@@ -14,7 +14,7 @@ test('Python mixed-market contract preserves provider player identity through mo
   assert.equal(r.events.length,1);assert.equal(r.legs.length,4);
   assert.equal(r.legs[3].modelWinProbability,null);
   assert.match(r.legs[3].legImplication,/Synthetic Player A/);
-  assert.match(r.legs[3].legImplication,/participation/);
+  assert.match(r.legs[3].legImplication,/participation/i);
   assert.deepEqual(r.assessment.alternatives,[]);
 });
 

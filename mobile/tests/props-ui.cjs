@@ -4,16 +4,38 @@ const fs=require('node:fs/promises');
 const path=require('node:path');
 const {setup,response,shifted}=require('./app-helper.cjs');
 
+test('uncertain integer alternate is explained before selection, on the ticket and in research',async()=>{
+ const raw=JSON.parse(await fs.readFile(path.join(__dirname,'fixtures/player-settlement-v1.json'),'utf8'));
+ const report=shifted(raw,Date.now()-Date.parse(raw.generatedAt)),q=report.legs[0].quote;
+ const a=await setup(async(url,options)=>{
+  const u=new URL(url);
+  if(u.pathname==='/api/sports')return response({sports:[{key:'americanfootball_nfl',title:'NFL'}]});
+  if(u.pathname==='/api/game-reports')return response(report);
+  if(u.pathname==='/api/odds/props')return response({quotes:[q]});
+  return response({quotes:[{...q,id:'synthetic-team',market:'h2h',outcome:q.homeTeam,point:null,playerName:undefined}]});
+ });
+ try{
+  await a.click('tab-check');await a.wait('browse-odds');await a.click('sport-americanfootball_nfl');await a.click('game-'+q.eventId);
+  await a.click('props-rush');await a.click('props-alternate');await a.click('load-props');
+  await a.wait('prop-settlement-'+q.id);assert.match(a.find('prop-settlement-'+q.id).textContent,/At exactly 60 yards/);
+  await a.click('prop-quote-'+q.id);assert.match(a.find('pick-0').textContent,/unverified/);
+  await a.click('analyze-parlay');await a.wait('game-reports');await a.click('analytic-info');
+  assert.match(a.find('report-leg-0').textContent,/At exactly 60 yards/);
+  assert.equal(Boolean(a.find('seven-toggle-0')),false);
+ }finally{a.close();}
+});
+
 async function app(){
  const raw=JSON.parse(await fs.readFile(path.join(__dirname,'fixtures/player-props-v1.json'),'utf8'));
  const data=shifted(raw,Date.now()-Date.parse(raw.generatedAt));
- const state={calls:[],fail:false,empty:false,deferred:null,requests:[]};
+ const state={calls:[],fail:false,empty:false,deferred:null,requests:[],research:null};
  const a=await setup(async(url,options)=>{
   const u=new URL(url);state.calls.push(u.pathname);
   if(u.pathname==='/api/sports')return response({sports:[{key:'americanfootball_nfl',title:'NFL'}]});
   if(u.pathname==='/api/game-reports'){
    const req=JSON.parse(options.body);state.requests.push(req);
    const r=structuredClone(data);r.assessment.comparisonContext={totalStake:req.totalStake,minimumTotalReturn:null,stakeBasis:'fixed_total_capital'};
+   if(state.research)r.events[0].research=structuredClone(state.research);
    r.legs=req.legs.map(l=>{const original=data.legs.find(x=>x.selection.market===l.market);return {...original,id:l.id,selection:l,quoteSource:{...original.quoteSource,id:'quote:'+l.id}};});
    return response(r);
   }
@@ -28,11 +50,11 @@ async function app(){
   const quote=data.legs.find(l=>l.selection.market===market)?.quote??data.legs[0].quote;
   return response({quotes:[quote,{...quote,id:quote.id+':b',eventId:'game-b',event:'Another synthetic game'}]});
  });
- await a.wait('browse-odds');await a.click('sport-americanfootball_nfl');await a.click('game-game-a');
+ await a.click('tab-check');await a.wait('browse-odds');await a.click('sport-americanfootball_nfl');await a.click('market-spreads');await a.click('game-game-a');
  return {...a,state,data};
 }
 
-test('props load on demand, mix with team lines and reach the Sevenfold report with exact player identity',async()=>{
+test('props load on demand, mix with team lines and reach the research report with exact player identity',async()=>{
  const a=await app();try{
   assert.equal(a.state.calls.filter(p=>p==='/api/odds/props').length,0);
   await a.click('quote-'+a.data.legs[0].quote.id);
@@ -41,11 +63,11 @@ test('props load on demand, mix with team lines and reach the Sevenfold report w
   await a.click('props-rush');await a.click('prop-quote-'+a.data.legs[3].quote.id);
   assert.match(a.find('parlay-count').textContent,/3\/8/);
   assert.equal(a.state.calls.filter(p=>p==='/api/odds/props').length,1);
-  await a.click('analyze-parlay');await a.wait('game-reports');
+  await a.click('analyze-parlay');await a.wait('game-reports');await a.click('analytic-info');
   assert.equal(a.state.requests[0].legs[1].playerName,'Synthetic Player A');
-  assert.match(a.d.body.textContent,/Whole-parlay win chance: research needed/);
-  await a.click('report-toggle-1');await a.click('seven-toggle-1');
-  assert.match(a.find('seven-responses-1').textContent,/Gus/);
+  assert.match(a.find('confidence-meter').textContent,/combined sportsbook quote/);
+  await a.click('report-toggle-1');
+  assert.match(a.find('report-leg-1').textContent,/Game script & rationale/);
   await a.click('props-alternate');assert.equal(Boolean(a.d.querySelector('[data-testid^="prop-quote-"]')),false);
   await a.click('load-props');await a.wait('prop-quote-'+a.data.legs[3].quote.id+':alt');
  }finally{a.close();}
@@ -70,4 +92,25 @@ test('an old game response cannot populate the next selected game',async()=>{
   assert.equal(Boolean(a.d.querySelector('[data-testid^="prop-quote-"]')),false);
   assert.equal(Boolean(a.find('pick-0')),false);
  }finally{if(resolve)resolve(response({quotes:[]}));a.close();}
+});
+
+test('NFL research shows reported injury and file times without asserting healthy or confirmed participation',async()=>{
+ const a=await app();try{
+  const raw=JSON.parse(await fs.readFile(path.join(__dirname,'fixtures/nfl-research-v1.json'),'utf8'));
+  a.state.research=shifted(raw,Date.now()-Date.parse('2026-11-07T20:00:00Z'));
+  const r=a.state.research;r.mapping.startAt=a.data.events[0].startAt;
+  r.players[0].requestedName='Synthetic Player A';r.players[0].injury.record.playerName='Synthetic Player A';
+  r.teamInjuries[0].playerName='Synthetic Player A';
+  await a.click('load-props');await a.wait('prop-player-0');await a.click('prop-quote-'+a.data.legs[2].quote.id);
+  await a.click('analyze-parlay');await a.wait('game-reports');await a.click('analytic-info');await a.wait('nfl-research');
+  assert.match(a.find('player-research').textContent,/Questionable/);
+  assert.match(a.find('player-research').textContent,/not confirmation that the player will play/);
+  await a.click('research-toggle');await a.wait('research-details');
+  assert.match(a.find('research-details').textContent,/File updated.*retrieved/);
+  assert.match(a.find('research-details').textContent,/Per-player confirmation time is unavailable/);
+  assert.match(a.find('research-details').textContent,/does not establish that a player is healthy/);
+  r.players[0].injury={status:'not_listed',record:null};r.teamInjuries=[];r.listedInjuryCount=0;
+  await a.click('analyze-parlay');await a.wait('game-reports');await a.click('analytic-info');await a.wait('player-research');
+  assert.match(a.find('player-research').textContent,/Not listed; health and participation are unknown/);
+ }finally{a.close();}
 });
