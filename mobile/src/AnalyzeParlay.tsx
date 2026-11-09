@@ -2,6 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {Linking,Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
 import type {Pick} from './math';
 import {marketLabel} from './odds';
+import NflResearch from './NflResearch';
 import {localTimestamp} from './games';
 import {evidenceUrl,fetchReports,reportFresh,reportInput,type EventReport,type GameReports,type LegReport} from './reports';
 
@@ -42,6 +43,7 @@ function LegCard({leg,event,pick,index,timeZone}:{leg:LegReport;event?:EventRepo
         <Text style={s.note}>{script?.status==='model_supplied'?'The model has no uniquely highest-weight scenario.':'Current game research and a supported forecast are needed before a game script can be shown.'}</Text>}
       <Text style={s.text}>{leg.legImplication}</Text>
       {event?.context.facts.map((f,i)=><Text key={i} style={s.note}>{f.text}</Text>)}
+      <NflResearch research={event?.research} playerName={pick.quote?.playerName} timeZone={timeZone} SourceLink={SourceLink}/>
       <Text style={s.section}>Weather & roof</Text>
       {event?.weather.status==='available'?<><Text style={s.text}>{event.weather.values!.temperature_2m}°F · wind {event.weather.values!.wind_speed_10m} mph · precipitation chance {event.weather.values!.precipitation_probability}%</Text>
         <Text style={s.note}>Kickoff-hour forecast · {event.weather.attribution}. No automatic change to the win estimate.</Text>

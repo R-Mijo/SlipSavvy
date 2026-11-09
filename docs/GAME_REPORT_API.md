@@ -61,6 +61,10 @@ The same four keys are accepted by `POST /api/game-reports` for NFL only. Prop l
 
 Props share the unchanged ten-credit/UTC-day reservation with main/alternate lookups, one credit per requested market before I/O, including failures. Five-minute cache hits/subsets of an existing market batch consume no new credits. Provider response is capped at 1 MiB, 128 outcomes per book/market and 256 normalized quotes per event; malformed/oversized markets are unavailable. Existing fixed host/no redirects, request deadline, final freshness/identity rechecks and 256 KiB HTTP response cap apply. Cache and counters remain process-local. No live provider calls in tests.
 
+## Free NFL research
+
+NFL reports add `events[].research`: partial/unavailable status, exact schedule mapping, per-dataset missing/stale/unknown coverage, selected-player roster/GSIS matching, reported injury/practice fields, a bounded team injury list and attributed source snapshots. All file update, retrieval and metadata-check times remain separate; per-player confirmation is null. No current participation, healthy-player conclusion or probability adjustment is inferred. See [identity, source/cache bounds, deployment defaults and full schema behavior](NFL_RESEARCH.md). Existing curated context/forecasts remain separate. Non-NFL reports do not fetch NFL sources, and older clients may ignore this additive field.
+
 ## Response
 
 `200` means a report was assembled; it does not mean every source is available or the bet is endorsed.

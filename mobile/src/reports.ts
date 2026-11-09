@@ -1,5 +1,6 @@
 import { american, number, type Pick } from './math';
 import { checkQuote, isProp } from './odds';
+import { decodeResearch,type Research } from './research';
 
 export const seats = ['Jeeves','Luna','Pax','Winston','Lisa','Diego','Gus'] as const;
 export type ReportLegInput = {id:string;eventId:string;sport:string;bookmaker:string;market:string;
@@ -11,7 +12,7 @@ export type Script = {status:'unavailable'|'model_supplied';mostLikelyScenarioId
 export type Weather = {status:'available'|'unavailable'|'not_applicable';reason?:string;
   retrievedAt?:string;hourAt?:string;attribution?:string;sourceUrl?:string;values?:Record<string,number>};
 export type EventReport = {eventId:string;sport:string;homeTeam:string;awayTeam:string;startAt:string;
-  startAtPhoenix:string;gameScript:Script;weather:Weather;context:{evidence:Evidence[];facts:{text:string;evidenceIds:string[]}[]}};
+  startAtPhoenix:string;gameScript:Script;weather:Weather;research?:Research;context:{evidence:Evidence[];facts:{text:string;evidenceIds:string[]}[]}};
 export type LegReport = {id:string;matchStatus:string;eventRef:string|null;legImplication:string;
   modelWinProbability:number|null;probabilityBasis:string;
   price:{americanOdds:string;decimalOdds:string;breakEvenPercent:number}|null;
@@ -96,6 +97,7 @@ export function decodeReports(value:unknown,input:ReportInput):GameReports {
   const events:EventReport[]=list(d.events,4).map(v=>{const e=record(v),c=record(e.context);
     return {eventId:str(e.eventId,100),sport:str(e.sport,100),homeTeam:str(e.homeTeam,200),awayTeam:str(e.awayTeam,200),
       startAt:date(e.startAt),startAtPhoenix:date(e.startAtPhoenix),gameScript:script(e.gameScript),weather:weather(e.weather),
+      research:decodeResearch(e.research,{sport:str(e.sport,100),startAt:date(e.startAt)},input.legs.filter(l=>l.sport===e.sport&&l.eventId===e.eventId&&l.playerName).map(l=>l.playerName!)),
       context:{evidence:list(c.evidence,24).map(v=>{const r=record(v),url=evidenceUrl(r.url);if(!url)throw Error('Evidence provenance is missing.');return {id:str(r.id,100),url,publisher:str(r.publisher,100),observedAt:date(r.observedAt),validUntil:date(r.validUntil)};}),
         facts:list(c.facts,8).map(v=>{const r=record(v);return {text:str(r.text,280),evidenceIds:list(r.evidenceIds,24).map(v=>str(v,100))};})}};
   });
@@ -142,6 +144,7 @@ export function reportFresh(report:GameReports,now=Date.now()):boolean {
   return age>=-60000&&age<=900000&&report.legs.every(l=>!l.quote||
     Date.parse(l.quote.startAt)>now&&now-Date.parse(l.quote.updatedAt)<=900000&&now-Date.parse(l.quote.updatedAt)>=-60000)&&
     report.events.every(e=>Date.parse(e.startAt)>now&&e.context.evidence.every(s=>Date.parse(s.validUntil)>now)&&
+      (!e.research||e.research.sources.every(s=>Date.parse(s.validUntil)>now))&&
       (e.gameScript.status!=='model_supplied'||Date.parse(e.gameScript.validUntil!)>now)&&
       (e.weather.status!=='available'||now-Date.parse(e.weather.retrievedAt!)<=300000));
 }
