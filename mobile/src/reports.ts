@@ -1,9 +1,9 @@
 import { american, number, type Pick } from './math';
-import { checkQuote } from './odds';
+import { checkQuote, isProp } from './odds';
 
 export const seats = ['Jeeves','Luna','Pax','Winston','Lisa','Diego','Gus'] as const;
 export type ReportLegInput = {id:string;eventId:string;sport:string;bookmaker:string;market:string;
-  outcome:string;point:number|null;americanOdds:string};
+  outcome:string;point:number|null;americanOdds:string;playerName?:string};
 export type ReportInput = {totalStake:string;minimumTotalReturn?:string;legs:ReportLegInput[]};
 export type Evidence = {id:string;url:string;publisher:string;observedAt:string;validUntil:string};
 export type Script = {status:'unavailable'|'model_supplied';mostLikelyScenarioId:string|null;
@@ -33,17 +33,17 @@ export function reportInput(picks:Pick[],stake:string,floor:string,now=Date.now(
     if(p.kind!=='feed'||!q)throw Error('Automatic research needs current sportsbook lines. Re-select manual or edited entries from the game browser.');
     checkQuote(q,now);
     if(!q.bookmakerKey||!q.outcome||!q.homeTeam||!q.awayTeam||
-      !['h2h','spreads','totals'].includes(q.market)||!['fanduel','draftkings'].includes(q.bookmakerKey)||
+      (!['h2h','spreads','totals'].includes(q.market)&&!isProp(q.market))||!['fanduel','draftkings'].includes(q.bookmakerKey)||
       !/^[A-Za-z0-9_-]{1,100}$/.test(q.eventId))throw Error('Refresh the games to receive recognizable sportsbook lines.');
     const point=q.point??null;
     if(q.market==='h2h'?point!==null:typeof point!=='number'||!Number.isFinite(point)||Math.abs(point)>1000)
       throw Error('This line is missing its handicap or total. Refresh the games.');
-    if(q.market==='totals'&&(Number(point)<=0||!['Over','Under'].includes(q.outcome)))throw Error('Refresh this total before analysis.');
+    if((q.market==='totals'||isProp(q.market))&&(Number(point)<=0||!['Over','Under'].includes(q.outcome)))throw Error('Refresh this total before analysis.');
     return {id:'leg-'+(i+1),eventId:q.eventId,sport:q.sport,bookmaker:q.bookmakerKey,market:q.market,
-      outcome:q.outcome,point,americanOdds:String(Number(q.americanOdds))};
+      outcome:q.outcome,point,americanOdds:String(Number(q.americanOdds)),...(isProp(q.market)?{playerName:q.playerName!}:{})};
   })};
   if(floor.trim())result.minimumTotalReturn=amount(floor,10000000);
-  const identities=result.legs.map(({sport,eventId,bookmaker,market,outcome,point})=>JSON.stringify([sport,eventId,bookmaker,market,outcome,point]));
+  const identities=result.legs.map(({sport,eventId,bookmaker,market,outcome,point,playerName})=>JSON.stringify([sport,eventId,bookmaker,market,outcome,point,playerName]));
   if(new Set(identities).size!==identities.length)throw Error('Remove duplicate selections before analysis.');
   if(new Set(result.legs.map(l=>l.sport+':'+l.eventId)).size>4||new Set(result.legs.map(l=>l.sport+':'+l.market)).size>4)
     throw Error('This preview analyzes up to four games and four sport/market combinations at once.');
@@ -113,7 +113,7 @@ export function decodeReports(value:unknown,input:ReportInput):GameReports {
     let price:LegReport['price']=null,quote:LegReport['quote']=null,source:LegReport['quoteSource']=null;
     if(r.quote!==null){const q=record(r.quote),p=record(r.price),s=record(r.quoteSource);
       if(q.eventId!==expected.eventId||q.sport!==expected.sport||q.bookmakerKey!==expected.bookmaker||
-        q.market!==expected.market||q.outcome!==expected.outcome||q.point!==expected.point||!event)throw Error('The current quote does not match your selection.');
+        q.market!==expected.market||q.outcome!==expected.outcome||q.point!==expected.point||q.playerName!==expected.playerName||!event)throw Error('The current quote does not match your selection.');
       const odds=str(q.americanOdds,10),decimal=number(american(odds));
       if(p.americanOdds!==odds||!Number.isFinite(Number(p.decimalOdds))||Math.abs(Number(p.decimalOdds)-decimal)>1e-8||
         typeof p.breakEvenPercent!=='number'||!Number.isFinite(p.breakEvenPercent)||Math.abs(p.breakEvenPercent-100/decimal)>1e-6||

@@ -27,7 +27,7 @@ def cash(value):
 
 
 def parse_request(data):
-    from .odds import SPORTS, MARKETS, BOOKS
+    from .odds import SPORTS, MARKETS, BOOKS, PROP_MARKETS, PROP_SPORT
     if not isinstance(data, dict) or set(data) - {'legs', 'totalStake', 'minimumTotalReturn'}:
         raise ValueError('Invalid report request')
     stake = cash(data.get('totalStake'))
@@ -40,14 +40,21 @@ def parse_request(data):
     result, ids, selections = [], set(), set()
     for leg in legs:
         if not isinstance(leg, dict) or set(leg) - {
-                'id', 'eventId', 'sport', 'bookmaker', 'market', 'outcome', 'point', 'americanOdds'}:
+                'id', 'eventId', 'sport', 'bookmaker', 'market', 'outcome', 'point', 'americanOdds', 'playerName'}:
             raise ValueError('Invalid leg fields')
         identity, event = text(leg.get('id'), 100), text(leg.get('eventId'), 100)
         if not re.fullmatch(r'[A-Za-z0-9_-]+', event):
             raise ValueError('Invalid provider event ID')
         sport, book, market = leg.get('sport'), leg.get('bookmaker'), leg.get('market')
-        if not all(isinstance(v, str) for v in (sport, book, market)) or sport not in SPORTS or book not in BOOKS or market not in MARKETS:
+        if not all(isinstance(v, str) for v in (sport, book, market)) or sport not in SPORTS or book not in BOOKS or market not in MARKETS | set(PROP_MARKETS):
             raise ValueError('Unsupported sport, bookmaker or market')
+        player = None
+        if market in PROP_MARKETS:
+            player = text(leg.get('playerName'), 120)
+            if sport != PROP_SPORT or player != leg.get('playerName') or any(ord(c) < 32 for c in player):
+                raise ValueError('Invalid provider player description')
+        elif 'playerName' in leg:
+            raise ValueError('Player identity only applies to props')
         outcome = text(leg.get('outcome'), 200)
         point = leg.get('point')
         if market == 'h2h':
@@ -56,26 +63,27 @@ def parse_request(data):
         else:
             point = finite(point, -1000, 1000)
             point = 0 if point == 0 else point
-            if market == 'totals' and (point <= 0 or outcome not in {'Over', 'Under'}):
+            if market in {'totals', *PROP_MARKETS} and (point <= 0 or outcome not in {'Over', 'Under'}):
                 raise ValueError('Invalid total')
         expected = leg.get('americanOdds')
         if expected is not None:
             if not isinstance(expected, str) or not re.fullmatch(r'[+-]?\d{3,6}', expected) or not 100 <= abs(int(expected)) <= 100000:
                 raise ValueError('Invalid expected price')
             expected = str(int(expected))
-        key = (sport, event, book, market, outcome, point)
+        key = (sport, event, book, market, outcome, point, player)
         if identity in ids or key in selections:
             raise ValueError('Duplicate leg or selection')
         ids.add(identity); selections.add(key)
         result.append({'id': identity, 'eventId': event, 'sport': sport, 'bookmaker': book,
-                       'market': market, 'outcome': outcome, 'point': point, 'americanOdds': expected})
+                       'market': market, 'outcome': outcome, 'point': point, 'americanOdds': expected,
+                       **({'playerName': player} if player is not None else {})})
     if len({(l['sport'], l['eventId']) for l in result}) > 4 or len({(l['sport'], l['market']) for l in result}) > 4:
         raise ValueError('Keep to four events and four sport/market lookups per report')
     return {'legs': result, 'totalStake': stake, 'minimumTotalReturn': floor}
 
 
 def selection_key(value):
-    return value['market'], value['outcome'], value.get('point')
+    return value['market'], value['outcome'], value.get('point'), value.get('playerName')
 
 
 def forecast_snapshot(context, event, now):
@@ -196,18 +204,34 @@ class ReportService:
             self.gate.release()
 
     def _build(self, request, deadline):
+        from .odds import PROP_MARKETS
+        # One event request per selected prop market group; never scan every browsed game.
+        prop_groups = {}
+        for leg in request['legs']:
+            if leg['market'] in PROP_MARKETS:
+                family = 'alternate' if leg['market'].endswith('_alternate') else 'main'
+                key = leg['sport'], leg['eventId'], family
+                prop_groups.setdefault(key, set()).add(leg['market'])
+        def batch_key(leg):
+            if leg['market'] in PROP_MARKETS:
+                return leg['sport'], leg['eventId'], 'alternate' if leg['market'].endswith('_alternate') else 'main'
+            return leg['sport'], leg['market']
         batches = {}
         for leg in request['legs']:
-            key = leg['sport'], leg['market']
+            key = batch_key(leg)
             if key not in batches:
                 try:
-                    batches[key] = self.odds.get(*key, timeout=self._remaining(deadline))['quotes']
+                    if leg['market'] in PROP_MARKETS:
+                        batches[key] = self.odds.get_props(leg['sport'], leg['eventId'],
+                            sorted(prop_groups[key]), timeout=self._remaining(deadline))['quotes']
+                    else:
+                        batches[key] = self.odds.get(*key, timeout=self._remaining(deadline))['quotes']
                     self._remaining(deadline)
                 except Exception:
                     batches[key] = None
         now, matches = self.clock(), []
         for leg in request['legs']:
-            quotes = batches[(leg['sport'], leg['market'])]
+            quotes = batches[batch_key(leg)]
             if quotes is None:
                 matches.append(('provider_unavailable', None)); continue
             candidates = []
@@ -323,7 +347,13 @@ class ReportService:
             price = {'americanOdds': str(odds), 'decimalOdds': format(float(decimal), '.12g'),
                      'decimalFraction': {'numerator': decimal.numerator, 'denominator': decimal.denominator},
                      'breakEvenPercent': float(100 / decimal), 'basis': 'bookmaker_price_not_win_forecast'}
-        implication = {'h2h': f"Requires {leg['outcome']} to win, subject to sportsbook draw/settlement rules.",
+        if leg.get('playerName'):
+            category = 'passing' if 'pass_yds' in leg['market'] else 'rushing'
+            implication = (f"Requires {leg['playerName']} to record {leg['outcome'].lower()} {leg['point']:g} {category} yards. "
+                           'An integer threshold can push; participation, overtime and void rules need verification. '
+                           'The provider player name is not a verified roster/player ID.')
+        else:
+            implication = {'h2h': f"Requires {leg['outcome']} to win, subject to sportsbook draw/settlement rules.",
                        'spreads': 'Selected team score plus the stated handicap must exceed the opponent score.',
                        'totals': f"Requires the combined score to be {'above' if leg['outcome']=='Over' else 'below'} {leg['point']}; check overtime and push rules."}[leg['market']]
         good = status == 'matched'
@@ -341,7 +371,8 @@ class ReportService:
         quote_refs = ['quote:' + leg['id']] if quote else []
         seat_refs = [quote_refs + evidence_ids, [], [], quote_refs, quote_refs + evidence_ids, [], quote_refs + evidence_ids]
         quote_fields = ('id', 'eventId', 'event', 'startAt', 'sport', 'market', 'label', 'americanOdds',
-                        'bookmaker', 'bookmakerKey', 'homeTeam', 'awayTeam', 'outcome', 'point', 'updatedAt', 'fetchedAt')
+                        'bookmaker', 'bookmakerKey', 'homeTeam', 'awayTeam', 'outcome', 'point', 'updatedAt', 'fetchedAt',
+                        'playerName', 'playerIdentityBasis', 'settlement')
         return {'id': leg['id'], 'selection': leg, 'matchStatus': status, 'eventRef': event_key if event else None,
                 'quote': {k: quote[k] for k in quote_fields if k in quote} if quote else None,
                 'quoteSource': {'id': 'quote:' + leg['id'], 'provider': 'The Odds API', 'sourceUrl': 'https://the-odds-api.com/',

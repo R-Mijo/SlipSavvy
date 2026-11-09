@@ -31,3 +31,4 @@ jobs:
       - run: npm run export
       - run: node tests/ui.cjs
       - run: node tests/odds-ui.cjs
+      - run: node tests/props-ui.cjs

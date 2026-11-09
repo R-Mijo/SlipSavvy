@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Linking,Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
 import type {Pick} from './math';
+import {marketLabel} from './odds';
 import {localTimestamp} from './games';
 import {evidenceUrl,fetchReports,reportFresh,reportInput,type EventReport,type GameReports,type LegReport} from './reports';
 
@@ -31,7 +32,7 @@ function LegCard({leg,event,pick,index,timeZone}:{leg:LegReport;event?:EventRepo
     </Pressable>
     <Text style={s.note}>{matchText[leg.matchStatus]}</Text>
     {open?<View style={s.stack}>
-      <Text style={s.note}>{pick.quote?.bookmaker} · {{h2h:'Moneyline',spreads:'Spread',totals:'Total'}[pick.quote?.market??'']??pick.quote?.market}</Text>
+      <Text style={s.note}>{pick.quote?.bookmaker} · {marketLabel(pick.quote?.market??'')}</Text>
       {event?<Text style={s.note}>{localTimestamp(event.startAt,timeZone)}</Text>:null}
       <Text style={s.text}>Current odds: {leg.price?.americanOdds??'Unavailable'}</Text>
       <Text style={s.text}>Model win estimate: {leg.modelWinProbability===null?'Not available yet':(leg.modelWinProbability*100).toFixed(1)+'% (model supplied)'}</Text>

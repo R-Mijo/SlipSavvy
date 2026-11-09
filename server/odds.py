@@ -16,6 +16,9 @@ SPORTS = {'americanfootball_nfl', 'americanfootball_ncaaf', 'basketball_nba',
           'basketball_ncaab', 'icehockey_nhl', 'baseball_mlb'}
 MARKETS = {'h2h', 'spreads', 'totals'}
 ALTERNATE_MARKETS = ('alternate_spreads', 'alternate_totals')
+PROP_MARKETS = ('player_pass_yds', 'player_rush_yds',
+                'player_pass_yds_alternate', 'player_rush_yds_alternate')
+PROP_SPORT = 'americanfootball_nfl'
 ALTERNATE_ROUTES = {'/api/odds/alternates'}
 BOOKS = {'fanduel', 'draftkings'}
 MAX_AGE = 900
@@ -48,7 +51,7 @@ def pair_opposing_quotes(quotes):
     for q in quotes:
         try:
             key = (q['eventId'], q['sport'], q['bookmakerKey'], q['market'],
-                   q['updatedAt'], q['outcome'], q['point'])
+                   q['updatedAt'], q['outcome'], q['point'], q.get('playerName'))
             buckets.setdefault(key, []).append(q)
         except (KeyError, TypeError):
             continue
@@ -69,7 +72,7 @@ def pair_opposing_quotes(quotes):
                     opp_outcome = away
                 elif outcome == away:
                     opp_outcome = home
-        elif market in {'totals', 'alternate_totals'}:
+        elif market in {'totals', 'alternate_totals', *PROP_MARKETS}:
             if type(point) in (int, float) and math.isfinite(point) and point > 0:
                 opp_point = point
                 if outcome == 'Over':
@@ -82,8 +85,10 @@ def pair_opposing_quotes(quotes):
             elif outcome == away:
                 opp_outcome = home
         matches = buckets.get((item.get('eventId'), item.get('sport'), item.get('bookmakerKey'),
-                               market, item.get('updatedAt'), opp_outcome, opp_point), []) if opp_outcome else []
-        item['opposingAmericanOdds'] = matches[0]['americanOdds'] if len(matches) == 1 else None
+                               market, item.get('updatedAt'), opp_outcome, opp_point, item.get('playerName')), []) if opp_outcome else []
+        own = buckets.get((item.get('eventId'), item.get('sport'), item.get('bookmakerKey'),
+                           market, item.get('updatedAt'), outcome, point, item.get('playerName')), [])
+        item['opposingAmericanOdds'] = matches[0]['americanOdds'] if len(matches) == len(own) == 1 else None
         if point is not None and type(point) in (int, float) and math.isfinite(point):
             item['pushPossible'] = float(point).is_integer()
         paired.append(item)
@@ -131,6 +136,16 @@ def normalize(events, sport, market, now):
 
 
 def normalize_alternates(data, sport, event_id, now):
+    return normalize_event_markets(data, sport, event_id, now, ALTERNATE_MARKETS)
+
+
+def normalize_props(data, sport, event_id, now, markets=PROP_MARKETS[:2]):
+    if sport != PROP_SPORT or not markets or not set(markets) <= set(PROP_MARKETS):
+        raise ValueError('Unsupported player prop market')
+    return normalize_event_markets(data, sport, event_id, now, markets)
+
+
+def normalize_event_markets(data, sport, event_id, now, requested_markets):
     if sport not in SPORTS:
         raise ValueError('Unsupported sport')
     valid_event_id(event_id)
@@ -179,7 +194,7 @@ def normalize_alternates(data, sport, event_id, now):
             if not isinstance(m, dict):
                 continue
             market_key = m.get('key')
-            if market_key not in ALTERNATE_MARKETS or market_counts.get(market_key, 0) != 1:
+            if market_key not in requested_markets or market_counts.get(market_key, 0) != 1:
                 continue
             try:
                 updated = m.get('last_update', book.get('last_update'))
@@ -199,7 +214,11 @@ def normalize_alternates(data, sport, event_id, now):
                 r_pt = raw.get('point')
                 if isinstance(r_name, str) and type(r_pt) in (int, float) and math.isfinite(r_pt):
                     norm_pt = 0 if r_pt == 0 else r_pt
-                    outcome_counts[(r_name, norm_pt)] = outcome_counts.get((r_name, norm_pt), 0) + 1
+                    subject = raw.get('description') if market_key in PROP_MARKETS else None
+                    if subject is not None and not isinstance(subject, str):
+                        continue
+                    key = r_name, norm_pt, subject
+                    outcome_counts[key] = outcome_counts.get(key, 0) + 1
             for outcome in outcomes:
                 if not isinstance(outcome, dict):
                     continue
@@ -213,7 +232,11 @@ def normalize_alternates(data, sport, event_id, now):
                 if type(point) not in (int, float) or not math.isfinite(point) or not -1000 <= point <= 1000:
                     continue
                 point = 0 if point == 0 else point
-                if outcome_counts.get((outcome_name, point), 0) != 1:
+                player = outcome.get('description') if market_key in PROP_MARKETS else None
+                if market_key in PROP_MARKETS and (not isinstance(player, str) or not player.strip()
+                        or player != player.strip() or len(player) > 120 or any(ord(c) < 32 for c in player)):
+                    continue
+                if outcome_counts.get((outcome_name, point, player), 0) != 1:
                     continue
                 if market_key == 'alternate_spreads':
                     if outcome_name not in {home, away}:
@@ -225,6 +248,9 @@ def normalize_alternates(data, sport, event_id, now):
                         continue
                     point_text=str(int(point)) if float(point).is_integer() else str(point)
                     label=f'{outcome_name} {point_text}'
+                    if player is not None:
+                        category = 'passing' if 'pass_yds' in market_key else 'rushing'
+                        label = f'{player} · {label} {category} yards'
                 if len(quotes) >= MAX_ALTERNATE_QUOTES:
                     break
                 quotes.append({
@@ -244,6 +270,9 @@ def normalize_alternates(data, sport, event_id, now):
                     'point': point,
                     'updatedAt': updated,
                     'fetchedAt': fetched_iso,
+                    **({'playerName': player, 'playerIdentityBasis': 'provider_description',
+                        'settlement': {'status': 'rules_required', 'pushPossible': float(point).is_integer(),
+                                       'nonParticipation': 'unknown', 'overtime': 'unknown'}} if player is not None else {}),
                 })
     return pair_opposing_quotes(quotes)
 
@@ -347,6 +376,17 @@ class OddsService:
             self.lock.release()
 
     def get_alternates(self, sport, event_id, timeout=None):
+        return self._get_event_markets(sport, event_id, ALTERNATE_MARKETS, 'alternates', timeout)
+
+    def get_props(self, sport, event_id, markets=PROP_MARKETS[:2], timeout=None):
+        valid_event_id(event_id)
+        if (sport != PROP_SPORT or not isinstance(markets, (list, tuple)) or not 1 <= len(markets) <= 2
+                or not all(isinstance(m, str) and m in PROP_MARKETS for m in markets)
+                or len(set(markets)) != len(markets)):
+            raise ValueError('Choose one or two supported NFL prop markets')
+        return self._get_event_markets(sport, event_id, tuple(sorted(markets)), 'props', timeout)
+
+    def _get_event_markets(self, sport, event_id, markets, kind, timeout=None):
         if sport not in SPORTS:
             raise ValueError('Unsupported sport')
         if isinstance(event_id, str):
@@ -378,25 +418,29 @@ class OddsService:
             per_event = []
             # Expired event caches cannot block reschedules indefinitely; keep memory bounded.
             for old_key, (created, _) in list(self.cache.items()):
-                if old_key[0] == 'alternates' and not 0 <= now-created < 300:
+                if old_key[0] in {'alternates', 'props'} and not 0 <= now-created < 300:
                     del self.cache[old_key]
             for eid in event_ids:
                 now = self.clock()
-                cache_key = ('alternates', sport, eid)
+                cache_key = ('alternates', sport, eid) if kind == 'alternates' else ('props', sport, eid, markets)
                 cached = self.cache.get(cache_key)
+                if cached is None and kind == 'props':
+                    cached = next((value for key, value in self.cache.items()
+                                   if key[:3] == ('props', sport, eid) and set(markets) <= set(key[3])
+                                   and 0 <= now-value[0] < 300), None)
                 if cached and 0 <= now - cached[0] < 300:
                     base = cached[1]
-                    fresh = [q for q in base['quotes']
+                    fresh = [q for q in base['quotes'] if q['market'] in markets
                              if -MAX_CLOCK_SKEW <= now - stamp(q['updatedAt']) <= MAX_AGE and stamp(q['startAt']) > now]
                     if fresh:
                         q=fresh[0]
                         self._check_identity_consistency(sport,eid,q['homeTeam'],q['awayTeam'],stamp(q['startAt']))
-                    per_event.append(dict(base, quotes=pair_opposing_quotes(fresh)))
+                    per_event.append(dict(base, markets=list(markets), quotes=pair_opposing_quotes(fresh)))
                     continue
-                self._reserve_credits(now, ALTERNATE_LOOKUP_CREDITS)
+                self._reserve_credits(now, len(markets))
                 data = fetch(f'sports/{sport}/events/{eid}/odds', {
                     'regions': 'us',
-                    'markets': ','.join(ALTERNATE_MARKETS),
+                    'markets': ','.join(markets),
                     'bookmakers': ','.join(sorted(BOOKS)),
                     'oddsFormat': 'american',
                     'dateFormat': 'iso',
@@ -409,14 +453,14 @@ class OddsService:
                     if isinstance(raw_event, dict) and all(k in raw_event for k in ('home_team', 'away_team', 'commence_time')):
                         self._check_identity_consistency(
                             sport, eid, raw_event['home_team'], raw_event['away_team'], stamp(raw_event['commence_time']))
-                    quotes = normalize_alternates(data, sport, eid, now)
+                    quotes = normalize_event_markets(data, sport, eid, now, markets)
                 except ValueError:
                     raise RuntimeError('Invalid provider event response.') from None
                 item = {
                     'provider': 'The Odds API',
                     'sport': sport,
                     'eventId': eid,
-                    'markets': list(ALTERNATE_MARKETS),
+                    'markets': list(markets),
                     'quotes': quotes,
                     'fetchedAt': datetime.fromtimestamp(now, timezone.utc).isoformat(),
                     'refreshSeconds': 300,
@@ -424,7 +468,7 @@ class OddsService:
                     'comparison': _comparison_boundary(),
                 }
                 if cache_key not in self.cache and len(self.cache)>=64:
-                    victim=next((k for k in self.cache if k[0]=='alternates'),None)
+                    victim=next((k for k in self.cache if k[0] in {'alternates', 'props'}),None)
                     if victim is not None:del self.cache[victim]
                 self.cache[cache_key] = (now, item)
                 per_event.append(item)
@@ -440,7 +484,7 @@ class OddsService:
                 'provider': 'The Odds API',
                 'sport': sport,
                 'eventIds': event_ids,
-                'markets': list(ALTERNATE_MARKETS),
+                'markets': list(markets),
                 'events': per_event,
                 'quotes': combined_quotes,
                 'fetchedAt': datetime.fromtimestamp(now, timezone.utc).isoformat(),
@@ -488,6 +532,11 @@ def application(environ,start_response):
                 sports=query.get('sport',[]);ids=query.get('eventId',[])
                 if len(sports)!=1 or not 1<=len(ids)<=8:raise ValueError('Sport and eventId required')
                 result=service.get_alternates(sports[0],ids[0] if len(ids)==1 else ids,timeout=20)
+            elif route=='/api/odds/props':
+                if set(query)-{'sport','eventId','market'}:raise ValueError('Unsupported query parameter')
+                sports=query.get('sport',[]);ids=query.get('eventId',[])
+                if len(sports)!=1 or len(ids)!=1:raise ValueError('One sport and eventId required')
+                result=service.get_props(sports[0],ids[0],query.get('market',list(PROP_MARKETS[:2])),timeout=20)
             else:status='404 Not Found';result={'error':'Not found'}
     except ValueError:status='400 Bad Request';result={'error':'Choose a supported sport and market.'}
     except Exception as error:

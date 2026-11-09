@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {Pressable,ScrollView,StyleSheet,Text,View} from 'react-native';
 import {checkQuote,oddsRequest,type Quote} from './odds';
 import {dayLabel,dayParts,gameChoices,gameDay,gamePart,gameTime,localTimestamp,type DayPart} from './games';
+import PlayerProps from './PlayerProps';
 
 export default function BrowseOdds({onChoose,selectedIds=[],timeZone}:{onChoose:(q:Quote)=>void;selectedIds?:string[];timeZone:string}) {
   const [sports,setSports]=useState<{key:string;title:string}[]>([]),[sport,setSport]=useState(''),[market,setMarket]=useState('h2h');
@@ -65,6 +66,8 @@ export default function BrowseOdds({onChoose,selectedIds=[],timeZone}:{onChoose:
         },'quote-'+q.id,selectedIds.includes(q.id))}
         <Text style={s.note}>Updated {localTimestamp(q.updatedAt,timeZone)} · The Odds API</Text>
       </View>)}
+      {sport==='americanfootball_nfl'?<PlayerProps key={JSON.stringify([sport,selected.eventId,selected.startAt,selected.homeTeam,selected.awayTeam])}
+        game={selected} onChoose={onChoose} selectedIds={selectedIds} timeZone={timeZone}/>:null}
     </View>:null}
     {button('Refresh games',()=>setRefresh(v=>v+1),'refresh-odds')}
     <Text style={s.note}>Prices use a five-minute shared cache and can change. Confirm with your sportsbook.</Text>

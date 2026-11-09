@@ -1,6 +1,6 @@
 # Game-report backend v1
 
-Implements the first backend slice of [issue #3](https://github.com/R-Mijo/SlipSavvy/issues/3). No mobile UI, deployment, betting, paid subscription, LLM call or trained forecasting model is included.
+Implements bounded backend slices of [issue #3](https://github.com/R-Mijo/SlipSavvy/issues/3). The phone uses these structured reports. No deployment, betting, paid subscription, LLM call or trained forecasting model is implied. See the [full product contract](SEVENFOLD_WORKFLOW.md) for the intended workflow and remaining work.
 
 ## Request
 
@@ -31,7 +31,7 @@ Leg fields are exact and case-sensitive. `id` is a unique local ID of 1–100 ch
 
 `GET /api/odds` now **additively** supplies `bookmakerKey`, `homeTeam`, `awayTeam`, `outcome` and `point`. Existing IDs, formatted labels and mobile fields remain unchanged. The future UI should map these fields directly into the report input. No parsing of selection labels or fuzzy event guessing is performed.
 
-Limits: 1–8 unique legs, at most four distinct events and four sport/market lookups. Repeated selections under different IDs, arbitrary extra fields, URLs, duplicate JSON keys, nonfinite numbers, malformed amounts and unsupported markets are rejected before fetching. Sport/book coverage is unchanged; dynamic all-sport discovery remains separate work. Offered alternate retrieval is described below.
+Limits: 1–8 unique legs, at most four distinct events and four sport/market combinations. Main-market requests batch by sport/market; props batch by event and main/alternate family. Each prop batch has one or two selected markets, sharing the existing credit/time limits. Repeated selections under different IDs, arbitrary extra fields, URLs, duplicate JSON keys, nonfinite numbers, malformed amounts and unsupported markets are rejected before fetching. Dynamic all-sport discovery remains separate work.
 
 ## Offered alternate quotes
 
@@ -50,6 +50,16 @@ Main and alternate lookups share a conservative ten-credit/UTC-day process-local
 Event quotes cache for five minutes. Expired alternate cache entries are pruned and total cache growth from event entries is capped at 64 slots alongside normal caches. Fresh conflicting identities block ambiguous results; expired caches cannot permanently block reschedules. Shared locking deduplicates same-game requests. The endpoint supplies a 20-second work/lock budget; readers have at most five-second socket waits, so in-flight reads can overrun by up to five seconds. Injected adapters must honor their timeout contract. Upstream alternates are capped at 1 MiB; serialized responses are capped at 256 KiB. Oversized combined responses return 503, not a truncated ticket.
 
 Authentication runs first (401). Invalid fields/IDs/method return 400; missing route 404; unavailable sources/quota/busy/oversize return sanitized 503. Unknown keys and unsupported markets are rejected before provider work. No provider URL/key is accepted from a client. No route aliases are added.
+
+## NFL player props
+
+`GET /api/odds/props?sport=americanfootball_nfl&eventId=provider-id`, with the existing preview Bearer gate, requests main passing/rushing yards for **one** event. Optional repeated `market` parameters select one or two distinct keys from `player_pass_yds`, `player_rush_yds`, `player_pass_yds_alternate`, `player_rush_yds_alternate`. No other sport, query parameter or provider route is accepted. The phone loads two main or two alternate markets only after the customer presses Load; changing the displayed player/category uses the returned data.
+
+Response shape matches a single-event alternate response. Quotes add `playerName` (the exact provider outcome `description`), `playerIdentityBasis: provider_description` and settlement metadata with unknown participation/overtime terms and an integer-threshold push flag. This is not an established roster/GSIS ID. No fuzzy player matching or inferred player team. Duplicate/invalid names, books, markets and exact player/outcome/point rows are omitted conservatively. Opposing-price pairing includes player, threshold, book, event, market and update time; one-sided alternate offers remain one-sided.
+
+The same four keys are accepted by `POST /api/game-reports` for NFL only. Prop legs require `playerName`, positive numeric `point` and `Over`/`Under`. Non-prop legs cannot contain `playerName`. Exact player identity participates in deduplication, quote matching and the echoed selection. Several players at the same threshold remain distinct. Team/prop selections may share games and research. Prop estimates remain unavailable: no evaluated player forecast or identity mapping is connected. Whole-ticket forecasts, combined prices and alternatives remain null/empty.
+
+Props share the unchanged ten-credit/UTC-day reservation with main/alternate lookups, one credit per requested market before I/O, including failures. Five-minute cache hits/subsets of an existing market batch consume no new credits. Provider response is capped at 1 MiB, 128 outcomes per book/market and 256 normalized quotes per event; malformed/oversized markets are unavailable. Existing fixed host/no redirects, request deadline, final freshness/identity rechecks and 256 KiB HTTP response cap apply. Cache and counters remain process-local. No live provider calls in tests.
 
 ## Response
 

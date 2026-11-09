@@ -24,4 +24,4 @@ async function setup(fetcher){
 }
 const response=(data,status=200)=>({ok:status>=200&&status<300,status,json:async()=>data,text:async()=>JSON.stringify(data)});
 async function fixture(){const raw=JSON.parse(await fs.readFile(path.join(__dirname,'fixtures/game-reports-v1.json'),'utf8'));return shifted(raw,Date.now()-Date.parse(raw.generatedAt));}
-module.exports={setup,response,fixture,tick};
+module.exports={setup,response,fixture,tick,shifted};
