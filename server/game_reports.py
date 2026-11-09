@@ -3,6 +3,7 @@ from collections import OrderedDict, deque
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from fractions import Fraction
+import os
 import re
 import threading
 import time
@@ -149,10 +150,15 @@ def forecast_snapshot(context, event, now):
 
 
 class ReportService:
-    def __init__(self, odds, context=None, weather=None, clock=time.time, monotonic=time.monotonic):
+    def __init__(self, odds, context=None, weather=None, clock=time.time, monotonic=time.monotonic, research=None, venues=None):
+        from .nfl_research import NflResearch
+        from .venue_weather import NwsWeather, VenueCatalog
         self.odds = odds
         self.context = context if context is not None else ContextCatalog()
-        self.weather = weather if weather is not None else OpenMeteoWeather()
+        mode=os.environ.get('REPORT_WEATHER_MODE','nws')
+        self.weather = weather if weather is not None else NwsWeather(clock=clock,monotonic=monotonic,mode=mode) if mode in {'nws','disabled'} else OpenMeteoWeather()
+        self.venues=venues if venues is not None else VenueCatalog()
+        self.research = NflResearch(clock=clock,monotonic=monotonic) if research is None else research
         self.clock, self.monotonic = clock, monotonic
         self.gate = threading.BoundedSemaphore(1)
         self.requests = deque()
@@ -165,17 +171,18 @@ class ReportService:
         return left
 
     def _weather(self, event, context, now, deadline):
-        venue = context.get('venue')
+        venue = context.get('venue') or (event.get('venue') if event.get('venue',{}).get('status')=='matched_catalog' else None)
         if not venue:
             return {'status': 'unavailable', 'reason': 'verified_venue_required'}
         if venue['roof'] == 'indoor' or (venue['roof'] == 'retractable' and venue['roofState'] == 'closed'):
             return {'status': 'not_applicable', 'reason': 'indoor_or_confirmed_closed_roof',
-                    'evidenceIds': venue['evidenceIds'] + venue.get('roofEvidenceIds', [])}
+                    'evidenceIds': venue.get('evidenceIds',[]) + venue.get('roofEvidenceIds', []),
+                    **({'validUntil':venue['validUntil']} if venue.get('validUntil') else {})}
         if venue['roof'] != 'outdoor' and not (venue['roof'] == 'retractable' and venue['roofState'] == 'open'):
             return {'status': 'unavailable', 'reason': 'roof_state_unknown'}
-        key = (event['sport'], event['eventId'], event['startAt'], venue['latitude'], venue['longitude'])
+        key = (event['sport'], event['eventId'], event['startAt'], venue['latitude'], venue['longitude'],venue['roof'],venue.get('roofState'))
         cached = self.weather_cache.get(key)
-        if cached and 0 <= now - cached[0] < 300:
+        if cached and 0 <= now - cached[0] < 300 and (not cached[1].get('validUntil') or timestamp(cached[1]['validUntil'])>now):
             self.weather_cache.move_to_end(key)
             return cached[1]
         try:
@@ -276,8 +283,22 @@ class ReportService:
                 except Exception:
                     context = {'status': 'unavailable', 'reason': 'context_provider_unavailable',
                                'evidence': [], 'facts': [], 'venue': None, 'forecast': None}
+                from .nfl_research import unavailable
+                try:
+                    names = list(dict.fromkeys(l['playerName'] for l in request['legs']
+                        if l.get('playerName') and (l['sport'],l['eventId']) == (leg['sport'],leg['eventId'])))
+                    research = self.research.lookup(event,names,now,timeout=self._remaining(deadline)) if self.research else unavailable('research_disabled')
+                except Exception:
+                    research = unavailable('research_provider_unavailable')
+                try:
+                    venue = self.venues.lookup(event,research,now) if not context.get('venue') else {'status':'operator_supplied','reason':'curated_context_venue'}
+                except Exception:
+                    venue = {'status':'unavailable','reason':'venue_catalog_unavailable'}
                 event.update(context={k: context[k] for k in ('status', 'reason', 'evidence', 'facts', 'venue')},
                              gameScript=forecast_snapshot(context, event, now),
+                             research=research,
+                             venue=venue)
+                event.update(
                              weather=self._weather(event, context, now, deadline))
                 events[event_key] = event
         for leg, (status, q) in zip(request['legs'], matches):
@@ -286,6 +307,17 @@ class ReportService:
         # A network operation may straddle the start/staleness boundary.
         finished = self.clock()
         for event in events.values():
+            venue=event['venue']
+            if venue.get('status')=='matched_catalog' and timestamp(venue['validUntil'])<=finished:
+                event['venue']={'status':'unavailable','reason':'venue_evidence_expired'}
+                event['weather'].clear();event['weather'].update(status='unavailable',reason='venue_evidence_expired')
+            weather=event['weather']
+            if weather.get('status')=='available' and weather.get('validUntil') and timestamp(weather['validUntil'])<=finished:
+                weather.clear();weather.update(status='unavailable',reason='weather_expired_during_report')
+            research = event['research']
+            if any(timestamp(s['validUntil']) <= finished for s in research.get('sources',[])):
+                from .nfl_research import unavailable
+                event['research'] = unavailable('research_expired_during_report')
             context = event['context']
             context['evidence'] = [e for e in context['evidence'] if timestamp(e['validUntil']) > finished]
             if not context['evidence'] and context['status'] == 'available':
@@ -306,10 +338,17 @@ class ReportService:
                 script.update(status='unavailable', reason='evidence_expired_during_report',
                               mostLikelyScenarioId=None, scenarios=[], selections=[])
         for report in reports:
+            event = events.get(report['eventRef'])
+            if event and event['research'].get('reason') == 'research_expired_during_report':
+                report['seven'][0].update(status='needs_data',bullets=['Research expired while this report was being prepared. Refresh before relying on it.'])
+                if report['selection'].get('playerName'):
+                    report['seven'][4].update(status='needs_data',bullets=[report['legImplication']+' The NFL research snapshot expired; refresh before relying on it.'])
             if report['gameScript'] and report['gameScript']['status'] != 'model_supplied':
+                had_probability = report['modelWinProbability'] is not None
                 report['modelWinProbability'] = None
                 report['probabilityBasis'] = 'unavailable'
-                report['seven'][4].update(status='needs_data', bullets=[report['legImplication'] + ' No supported win estimate is available.'])
+                if had_probability:
+                    report['seven'][4].update(status='needs_data', bullets=[report['legImplication'] + ' No supported win estimate is available.'])
             if report['eventRef']:
                 valid_ids = {e['id'] for e in events[report['eventRef']]['context']['evidence']}
                 valid_ids.add('quote:' + report['id'])
@@ -348,10 +387,15 @@ class ReportService:
                      'decimalFraction': {'numerator': decimal.numerator, 'denominator': decimal.denominator},
                      'breakEvenPercent': float(100 / decimal), 'basis': 'bookmaker_price_not_win_forecast'}
         if leg.get('playerName'):
+            from .prop_settlement import threshold_unverified, threshold_notice
             category = 'passing' if 'pass_yds' in leg['market'] else 'rushing'
-            implication = (f"Requires {leg['playerName']} to record {leg['outcome'].lower()} {leg['point']:g} {category} yards. "
-                           'An integer threshold can push; participation, overtime and void rules need verification. '
-                           'The provider player name is not a verified roster/player ID.')
+            if threshold_unverified(leg['market'], leg['point']):
+                probability = None
+                implication = f"{leg['playerName']} · {category} yards. " + threshold_notice(leg['market'], leg['outcome'], leg['point'])
+            else:
+                implication = f"Requires {leg['playerName']} to record {leg['outcome'].lower()} {leg['point']:g} {category} yards."
+            implication += (' Participation, overtime, push and void rules need verification. '
+                            'The provider player name is not a verified roster/player ID.')
         else:
             implication = {'h2h': f"Requires {leg['outcome']} to win, subject to sportsbook draw/settlement rules.",
                        'spreads': 'Selected team score plus the stated handicap must exceed the opponent score.',
@@ -367,6 +411,14 @@ class ReportService:
             ('needs_data' if good else 'blocked', 'Whole-ticket value remains unestablished without joint model support and a combined quote.' if good else 'Resolve selection identity, price or freshness before using this leg.')]
         if status == 'price_changed':
             finding[0] = 'blocked', 'The current quote differs from the requested price; customer reconfirmation is required.'
+        research = event.get('research') if event else None
+        if good and research and research['mapping']:
+            mapping = research['mapping']
+            finding[0] = ('needs_data', f"Schedule matched NFL week {mapping['week']}. Injury/roster data are file snapshots, not confirmed participation.")
+            if leg.get('playerName'):
+                player = next((p for p in research['players'] if p['requestedName']==leg['playerName']),None)
+                if player:
+                    finding[4] = ('needs_data', implication + f" Player mapping: {player['status']}; injury snapshot: {player['injury']['status']}. No supported probability adjustment.")
         evidence_ids = [e['id'] for e in event['context']['evidence']] if event else []
         quote_refs = ['quote:' + leg['id']] if quote else []
         seat_refs = [quote_refs + evidence_ids, [], [], quote_refs, quote_refs + evidence_ids, [], quote_refs + evidence_ids]

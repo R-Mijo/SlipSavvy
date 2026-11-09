@@ -11,6 +11,7 @@ from urllib.parse import urlencode, parse_qs
 from urllib.request import Request
 from urllib.error import HTTPError, URLError
 from .report_sources import read_json_response
+from .prop_settlement import prop_settlement, threshold_unverified
 
 SPORTS = {'americanfootball_nfl', 'americanfootball_ncaaf', 'basketball_nba',
           'basketball_ncaab', 'icehockey_nhl', 'baseball_mlb'}
@@ -89,7 +90,12 @@ def pair_opposing_quotes(quotes):
         own = buckets.get((item.get('eventId'), item.get('sport'), item.get('bookmakerKey'),
                            market, item.get('updatedAt'), outcome, point, item.get('playerName')), [])
         item['opposingAmericanOdds'] = matches[0]['americanOdds'] if len(matches) == len(own) == 1 else None
-        if point is not None and type(point) in (int, float) and math.isfinite(point):
+        if market in PROP_MARKETS:
+            item['settlement'] = prop_settlement(market, point)
+            item['pushPossible'] = item['settlement']['pushPossible']
+            if threshold_unverified(market, point):
+                item['opposingAmericanOdds'] = None
+        elif point is not None and type(point) in (int, float) and math.isfinite(point):
             item['pushPossible'] = float(point).is_integer()
         paired.append(item)
     return paired
@@ -270,9 +276,7 @@ def normalize_event_markets(data, sport, event_id, now, requested_markets):
                     'point': point,
                     'updatedAt': updated,
                     'fetchedAt': fetched_iso,
-                    **({'playerName': player, 'playerIdentityBasis': 'provider_description',
-                        'settlement': {'status': 'rules_required', 'pushPossible': float(point).is_integer(),
-                                       'nonParticipation': 'unknown', 'overtime': 'unknown'}} if player is not None else {}),
+                    **({'playerName': player, 'playerIdentityBasis': 'provider_description'} if player is not None else {}),
                 })
     return pair_opposing_quotes(quotes)
 
@@ -561,6 +565,9 @@ def report_application(environ,start_response):
         elif environ.get('CONTENT_TYPE','').split(';')[0].strip().lower()!='application/json':
             status='415 Unsupported Media Type';result={'error':'JSON required.'}
         else:
+            weather_schema=environ.get('HTTP_X_SLIPSAVVY_WEATHER_SCHEMA','legacy-v1')
+            if weather_schema not in {'legacy-v1','nws-v1'}:
+                raise ValueError('Unsupported weather response schema')
             length=environ.get('CONTENT_LENGTH','')
             if not length.isascii() or not length.isdecimal() or len(length)>8:
                 raise ValueError('Content length required')
@@ -570,7 +577,7 @@ def report_application(environ,start_response):
             else:
                 raw=environ['wsgi.input'].read(size)
                 if len(raw)!=size:raise ValueError('Incomplete body')
-                result=game_reports().build(strict_json(raw))
+                result=weather_response(game_reports().build(strict_json(raw)),weather_schema)
     except ReportBusy:
         status='429 Too Many Requests';headers.append(('Retry-After','5'))
         result={'error':'The preview report service is busy. Try again shortly.'}
@@ -584,3 +591,21 @@ def report_application(environ,start_response):
     headers.append(('Content-Length',str(len(encoded))))
     start_response(status,headers)
     return [encoded]
+
+
+def weather_response(report, schema='legacy-v1'):
+    """Preserve installed clients; never mutate cached source weather objects.
+
+    Legacy readers require Open-Meteo numeric fields and cannot represent NWS
+    ranges/missing values faithfully. Withhold NWS weather until the client opts
+    in, instead of manufacturing values or returning an unreadable v1 report.
+    """
+    if schema not in {'legacy-v1','nws-v1'}:
+        raise ValueError('Unsupported weather response schema')
+    def project(weather):
+        if schema=='legacy-v1' and weather.get('provider')=='NWS' and weather.get('status')=='available':
+            return {'status':'unavailable','reason':'client_update_required_for_nws_weather'}
+        return weather
+    return dict(report,weatherSchema=schema,
+                events=[dict(event,weather=project(event['weather'])) for event in report['events']],
+                legs=[dict(leg,weather=project(leg['weather'])) for leg in report['legs']])

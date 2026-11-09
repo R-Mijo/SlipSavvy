@@ -12,7 +12,7 @@ async function app(){
   const quotes=games.map(g=>({id:g.id+':'+market,eventId:g.id,event:'Synthetic '+g.id,startAt:g.at,sport:'americanfootball_ncaaf',market,label:'Synthetic line',americanOdds:'-110',bookmaker:'FanDuel',bookmakerKey:'fanduel',outcome:'Synthetic Home',point:market==='h2h'?null:-3.5,homeTeam:'Synthetic Home',awayTeam:'Synthetic Away',updatedAt:new Date().toISOString(),fetchedAt:new Date().toISOString()}));
   state.quotes=quotes;return response({quotes:state.empty?[]:quotes});
  });
- await a.wait('browse-odds');await a.zone('UTC');await a.click('sport-americanfootball_ncaaf');
+ await a.click('tab-check');await a.wait('browse-odds');await a.zone('UTC');await a.click('sport-americanfootball_ncaaf');
  return {...a,state,day,tomorrow};
 }
 test('NCAA dates, day parts and eight-game pages shorten the list',async()=>{

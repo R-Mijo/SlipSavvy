@@ -15,6 +15,7 @@ async function app(){
   if(state.hold)await new Promise(r=>state.release=r);
   return response(state.status===200?output:{error:'private-provider-failure'},state.status);
  });
+ await a.click('tab-check');
  const addFour=async()=>{
   await a.click('sport-basketball_nba');await a.click('market-spreads');await a.click('game-game-a');await a.click('quote-'+quotes[0].id);
   await a.click('market-totals');await a.wait('quote-'+quotes[1].id);await a.click('quote-'+quotes[1].id);
@@ -23,21 +24,22 @@ async function app(){
  };
  return {...a,state,addFour,quotes};
 }
-test('select four lines, learn leg tradeoffs, and expand all seven without manual betting fields',async()=>{
+test('manual ticket keeps analyze below selections and collapses research without named personas',async()=>{
  const a=await app();try{
-  await a.wait('browse-odds');
+  await a.click('tab-check');await a.wait('browse-odds');
   for(const id of ['selection','event','odds','chance','add','review','confirm'])assert.equal(Boolean(a.find(id)),false,id);
   assert.equal(a.find('analyze-parlay').getAttribute('aria-disabled'),'true');
-  await a.addFour();assert.match(a.find('parlay-count').textContent,/4\/8/);assert.match(a.find('leg-illustration').textContent,/6.25%/);
-  await a.click('report-options');await a.fill('report-floor','90');await a.click('analyze-parlay');await a.wait('game-reports');
-  assert.equal(a.state.calls[0].legs.length,4);assert.equal(a.state.calls[0].minimumTotalReturn,'90.00');
-  assert.match(a.find('game-reports').textContent,/Whole-parlay win chance: research needed/);
-  await a.click('seven-toggle-0');
-  for(const name of ['Jeeves','Luna','Pax','Winston','Lisa','Diego','Gus'])assert.ok(a.find('seven-responses-0').textContent.includes(name),name);
+  await a.addFour();assert.match(a.find('parlay-count').textContent,/4\/8/);assert.ok(a.find('browse-odds').compareDocumentPosition(a.find('analyze-parlay'))&4);
+  assert.equal(Boolean(a.find('report-options')),false);await a.click('analyze-parlay');await a.wait('game-reports');
+  assert.equal(a.state.calls[0].legs.length,4);assert.equal(a.state.calls[0].minimumTotalReturn,undefined);
+  assert.equal(Boolean(a.find('report-leg-0')),false);
+  assert.equal(a.find('weather-info').getAttribute('aria-expanded'),'false');
+  await a.click('analytic-info');
+  assert.doesNotMatch(a.find('game-reports').textContent,/Sevenfold|Jeeves|Luna|Winston/);
   assert.equal(a.d.querySelectorAll('[data-testid^="report-leg-"]').length,4);
   await a.zone('Asia/Tokyo');assert.ok(Boolean(a.find('game-reports')),'zone changes presentation without invalidating research');
-  await a.click('remove-3');assert.equal(Boolean(a.find('game-reports')),false);assert.match(a.find('leg-illustration').textContent,/12.50%/);
-  await a.click('tab-learn');assert.match(a.d.body.textContent,/4.67%/);
+  await a.click('remove-3');assert.equal(Boolean(a.find('game-reports')),false);assert.match(a.find('parlay-count').textContent,/3\/8/);
+  await a.click('tab-savvy');assert.ok(a.find('savvy-builder'));assert.equal(a.d.querySelectorAll('[role=tab]').length,2);
  }finally{a.close();}
 });
 test('access errors are safe and changing stake invalidates a report',async()=>{
@@ -45,8 +47,8 @@ test('access errors are safe and changing stake invalidates a report',async()=>{
   await a.addFour();a.state.status=401;await a.click('analyze-parlay');await a.wait('report-error');
   assert.match(a.find('report-error').textContent,/Preview access/);assert.doesNotMatch(a.d.body.textContent,/private-provider/);
   a.state.status=200;await a.click('analyze-parlay');await a.wait('game-reports');
-  await a.click('stake-25');assert.equal(Boolean(a.find('game-reports')),false);
-  await a.click('analyze-parlay');await a.wait('game-reports');assert.equal(a.state.calls.at(-1).totalStake,'25.00');
+  await a.click('stake-20');assert.equal(Boolean(a.find('game-reports')),false);
+  await a.click('analyze-parlay');await a.wait('game-reports');assert.equal(a.state.calls.at(-1).totalStake,'20.00');
  }finally{a.close();}
 });
 test('cancelled and obsolete requests cannot resurrect reports for a changed parlay',async()=>{

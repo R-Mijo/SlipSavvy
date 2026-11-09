@@ -1,15 +1,15 @@
 # Sevenfold product contract
 
-Updated November 7, 2026. Intended product, not a claim that every stage is implemented. Supersedes narrower builder interpretations in issues #3/#9.
+Updated November 9, 2026. Intended product, not a claim that every stage is implemented. Supersedes narrower builder interpretations in issues #3/#9.
 
 ## Customer flow
 
 1. Choose sport, date/time zone, number of legs (2/3/4 initially), allowed markets and composition.
 2. Optionally choose preferred teams, players or games; lock exact selections or choose every desired leg. Set total stake, return floor and explicit price/risk limits. Use selections, not manual game/odds/probability entry.
 3. Generate researched candidate tickets. Mix moneyline, spreads, totals and player props. Four legs can come from two games. Never enforce one game per leg as the final design.
-4. Show concise assessments, shared per-game evidence and leg-specific implications, expandable Sevenfold findings and supported comparisons. Permit insufficient data, no suitable alternative and no supported edge.
+4. Show concise assessments, shared per-game evidence and leg-specific implications, expandable Parlay Info, Weather Info and Analytic Info, with supported comparisons. Permit insufficient data, no suitable alternative and no supported edge.
 
-The current phone still browses games/lines before analysis. The NFL props addition is a selection/report milestone; filter-first automatic generation and locked-leg completion are unfinished. Do not label a price-distance filler builder as the researched product. A customer can exclude extreme favorites (for example -900) explicitly; price alone does not establish bad value.
+The current review branch adds a filters-first two-tab UI and bounded price-matched candidate search with source checks before suggestion. This is not the completed research-driven recommender. The manual tab allows mixed and same-game selections. Builder generation temporarily uses 2–4 distinct games so it can display a clearly estimated combined price without fabricating SGP offers. Locked-leg completion, predictive matchup ranking and same-game generation remain unfinished. Show useful available candidates even without an established edge; explain missing inputs and target shortfalls. The old unpublished price-distance experiment remains separate and untouched.
 
 ## Research and forecast requirements
 
@@ -37,21 +37,21 @@ Use actual combined prices with book, timestamp and settlement terms. Never mult
 | Diego | Check actual promotion and settlement terms/eligibility. |
 | Gus | Audit evidence, arithmetic and unresolved assumptions internally. |
 
-All seven have concise expandable findings; no memos or purported external ChatGPT audit. Current findings are deterministic checks, not seven researched LLM calls.
+All seven remain internal checks; the customer sees concise advice and expandable evidence without seven named responses. Current findings are deterministic checks, not seven researched LLM calls.
 
 ## Delivery and status
 
 New subscriptions budget: **$0**. Reuse configured server-side access; no credentials in clients/logs/documents. No purchases or auto-billing trials. New branches and tested PRs; no merges, deployments or cloud builds without authorization. Exports/synthetic tests do not prove physical-device execution. The user confirmed Android opens after the merged startup repair.
 
-Starting main: `a25b4c9cd296e51343537999a7b3373c1c10593a`.
+Verified main on November 9: `ac5346e` (PR #10 merge). GitHub marks PRs #11–#13 merged, but their base branches were the preceding feature branches. They did not reach main through those merges. This review branch includes their reviewed code; it does not deploy or merge anything into GitHub main.
 
 | State | Functionality |
 | --- | --- |
-| Merged #4/#5 | Authenticated reports, shared per-game context contract, selection-only tray, date/time-zone filters and seven cards. Research feeds/model not connected. |
-| Merged #7 | Android loading-role fix; user confirms rebuilt app opens. |
-| Merged #8 | Offered alternate spread/total retrieval, cache and shared weighted reservations. No mobile alternate selector/optimizer. |
-| This branch, pending review | On-demand NFL passing/rushing main and alternate lines, mixed-market selection and exact prop matching in reports. Model/joint price/settlement remain unknown. |
-| Separate unpublished experiment | Earlier team-only price-distance builder. No files from it are included here; its one-game-per-leg rule and price-only generation are not accepted product behavior. |
-| Unfinished | Filter-first research/generation; complete injury/context/weather feeds; evaluated forecasts; combined SGP offers; settlement-aware fixed-capital comparisons; six-game reports; share/import; production accounts/billing; iPhone/device release checks. |
+| Verified main | Android startup fix, report contract, team/prop selection, dates/time zones, alternate retrieval backend. |
+| Included dependencies in this PR | Free NFL snapshots, three-venue weather pilot and uncertain alternate settlement handling from #11–#13. |
+| New in this PR | Two tabs, sport icons, filters-first bounded candidates, automatic research, odds-derived score, collapsed evidence, candidate and split price comparisons, bottom analysis action, inactive sponsors section. |
+| Separate unpublished experiment | Earlier team-only price-distance builder; untouched and not the finished product. |
+| Still unfinished | Predictive matchup ranking beyond source-check rules; locked-leg completion; same-game candidate generation/actual combined quotes; full venue and role/usage/recent-form coverage; evaluated forecasts; settlement-aware expected outcomes; accounts, ads integration and release verification. |
 
+See [mobile flow and implementation bounds](MOBILE_FLOW.md).
 See [free NFL sources](FREE_NFL_SOURCES.md) and [API contract](GAME_REPORT_API.md).

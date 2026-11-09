@@ -1,4 +1,4 @@
-import React,{useState} from 'react';
+import React,{useEffect,useState} from 'react';
 import {Image,Pressable,ScrollView,StyleSheet,Text,View} from 'react-native';
 import {SafeAreaProvider,SafeAreaView} from 'react-native-safe-area-context';
 import {StatusBar} from 'expo-status-bar';
@@ -6,36 +6,43 @@ import BrowseOdds from './src/BrowseOdds';
 import TimeZoneChoice from './src/TimeZoneChoice';
 import {deviceZone} from './src/games';
 import AnalyzeParlay from './src/AnalyzeParlay';
-import {quotePick,type Quote} from './src/odds';
+import SportPicker from './src/SportPicker';
+import SavvyBuilder from './src/SavvyBuilder';
+import TicketInfo from './src/TicketInfo';
+import {Fold,Meter,flow} from './src/FlowUI';
+import {quotePick,propThresholdNotice,type Quote} from './src/odds';
 import {replacePick} from './src/review';
 import type {Pick} from './src/math';
-
-function Learn(){return <View style={s.stack}>
-  <Text style={s.title}>Learn the odds</Text>
-  <View style={s.card}><Text style={s.cardTitle}>Prices and predictions</Text><Text style={s.body}>At −110, the price needs a win rate above 52.38% to break even. That is a price threshold, not a prediction of the game.</Text>
-    <Text style={s.body}>A $10 bet at +150 returns $25 if it wins, including your $10 stake.</Text></View>
-  <View style={s.card}><Text style={s.cardTitle}>Each extra leg must also win</Text><Text style={s.body}>For independent 50% outcomes, one wins 50% of the time, two both win 25%, and four all win 6.25%. Six independent 60% selections all win about 4.67% of the time.</Text>
-    <Text style={s.body}>Selections from the same game can be related. They need a shared game model and the sportsbook's actual combined price.</Text></View>
-  <View style={s.card}><Text style={s.cardTitle}>What Sevenfold can establish</Text><Text style={s.body}>Current lines and exact price calculations can be checked. Game scripts and win estimates require supported research and model inputs. More simulations improve sampling precision, not the quality of the underlying forecast.</Text></View>
-  <View style={s.card}><Text style={s.cardTitle}>Keep it affordable</Text><Text style={s.body}>Set a limit before you start. Use money you can afford to lose, take breaks and avoid chasing losses. SlipSavvy does not place bets or guarantee winnings.</Text></View>
-</View>;}
+import type {GameReports} from './src/reports';
 
 export default function App(){
-  const [timeZone,setTimeZone]=useState(deviceZone);
-  const [tab,setTab]=useState<'build'|'learn'>('build'),[picks,setPicks]=useState<Pick[]>([]),[notice,setNotice]=useState(''),[error,setError]=useState('');
-  const add=(quote:Quote)=>{try{const pick=quotePick(quote);setPicks(replacePick(picks,pick));setNotice(quote.label+' added to your parlay.');setError('');}
+  const [timeZone,setTimeZone]=useState(deviceZone),[sport,setSport]=useState('');
+  const [tab,setTab]=useState<'savvy'|'check'>('savvy'),[picks,setPicks]=useState<Pick[]>([]);
+  const [notice,setNotice]=useState(''),[error,setError]=useState(''),[stake,setStake]=useState('10'),[target,setTarget]=useState('100'),[autoRun,setAutoRun]=useState(0);
+  const [prepared,setPrepared]=useState<{key:string;data:GameReports}|undefined>(undefined);
+  const [now,setNow]=useState(Date.now());
+  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),15000);return()=>clearInterval(timer);},[]);
+  const add=(quote:Quote)=>{try{const pick=quotePick(quote);setPicks(replacePick(picks,pick));setNotice(quote.label+' added.');setError('');}
     catch(e){setError((e as Error).message);}};
-  const count=picks.length,illustration=100*Math.pow(.5,Math.max(1,count));
+  const generated=(next:Pick[],report?:GameReports)=>{setPrepared(report?{key:JSON.stringify([next,stake,target]),data:report}:undefined);setPicks(next);setNotice('Suggested ticket ready. Review the available research below.');setError('');setAutoRun(n=>n+1);};
   return <SafeAreaProvider><SafeAreaView style={s.safe}>
     <StatusBar style="light"/>
-    <View style={s.brandRow}><Image source={require('./assets/logo-horizontal.png')} accessible accessibilityLabel="SlipSavvy" style={s.brand} resizeMode="contain"/><Text style={s.badge}>PHONE PREVIEW</Text></View>
+    <View style={s.brandRow}><Image source={require('./assets/logo-horizontal.png')} accessible accessibilityLabel="SlipSavvy" style={s.brand} resizeMode="contain"/><Text style={s.badge}>RESEARCH PREVIEW</Text></View>
     <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
-      {tab==='learn'?<Learn/>:<View style={s.stack}>
-        <View><Text style={s.title}>Build your parlay.</Text><Text style={s.body}>Choose your lines. See the tradeoffs.</Text></View>
+      <View style={s.stack}>
+        <SportPicker sport={sport} onChange={setSport}/>
+        <View style={s.nav}>{(['savvy','check'] as const).map(t=><Pressable key={t} testID={'tab-'+t} accessibilityRole="tab" accessibilityState={{selected:tab===t}}
+          onPress={()=>setTab(t)} style={[s.navItem,t===tab&&{backgroundColor:'#151E29',borderColor:'#C9F84A',borderWidth:1}]}><Text style={[s.cardTitle,t===tab&&s.lime]}>{t==='savvy'?'Savvy Parlay Builder':'My Picks & Research'}</Text></Pressable>)}</View>
+        {tab==='savvy'?<SavvyBuilder sport={sport} stake={stake} target={target} onStake={setStake} onTarget={setTarget} onChoose={generated}/>:<>
+          <Text style={flow.title}>Choose your lines.</Text><Text style={s.body}>Mix team lines and player props. We’ll research your ticket.</Text>
+          <TimeZoneChoice zone={timeZone} onChange={setTimeZone}/>
+          <BrowseOdds sport={sport} timeZone={timeZone} onChoose={add} selectedIds={picks.map(p=>p.id)}/>
+        </>}
         <View style={s.card} testID="parlay-tray">
-          <View style={s.row}><Text style={s.cardTitle}>Your parlay</Text><Text style={s.lime} testID="parlay-count">{count}/8 legs</Text></View>
-          {!count?<Text style={s.body}>Choose a sport, date and game below to add your first line.</Text>:picks.map((pick,i)=><View style={s.pick} key={pick.id} testID={'pick-'+i}>
+          <View style={s.row}><Text style={s.cardTitle}>Your parlay</Text><Text style={s.lime} testID="parlay-count">{picks.length}/8 legs</Text></View>
+          {!picks.length?<Text style={s.body}>Your selections will appear here.</Text>:picks.map((pick,i)=><View style={s.pick} key={pick.id} testID={'pick-'+i}>
             <View style={s.row}><Text style={[s.selection,s.flex]}>{pick.label}</Text><Text style={s.price}>{Number(pick.odds)>0?'+':''}{pick.odds}</Text></View>
+            {pick.quote&&propThresholdNotice(pick.quote)?<Text style={s.body}>{propThresholdNotice(pick.quote)}</Text>:null}
             <Text style={s.note}>{pick.quote?.event??pick.event}</Text>
             <View style={s.row}><Text style={[s.note,s.flex]}>{pick.quote?.bookmaker??pick.source}</Text>
               <Pressable testID={'remove-'+i} accessibilityRole="button" accessibilityLabel={'Remove '+pick.label} style={s.remove}
@@ -43,20 +50,15 @@ export default function App(){
           </View>)}
           {notice?<Text accessibilityLiveRegion="polite" style={s.note}>{notice}</Text>:null}
           {error?<Text accessibilityRole="alert" testID="error" style={s.error}>{error}</Text>:null}
+          {tab==='check'?<View style={flow.wrap}>{['5','10','20'].map(v=><Pressable key={v} testID={'stake-'+v} accessibilityRole="button" accessibilityLabel={'Stake $'+v} accessibilityState={{selected:stake===v}} onPress={()=>setStake(v)} style={[flow.chip,stake===v&&flow.selected]}><Text style={flow.text}>${v}</Text></Pressable>)}</View>:null}
+          <Meter picks={picks} now={now}/>
         </View>
-        {count?<View style={s.lesson} testID="leg-lesson"><Text style={s.cardTitle}>What changes with {count===1?'another leg':count+' legs'}?</Text>
-          <Text style={s.body}>Every added leg must also win. An extra leg can raise the payout while reducing the chance of the whole ticket winning.</Text>
-          <Text style={s.note} testID="leg-illustration">Illustration only: at 50% each with independent outcomes, {Math.max(1,count)} {count===1?'leg wins':'legs all win'} {illustration.toFixed(2)}% of the time. This is not a forecast for your picks.</Text>
-          <Text style={s.note}>Same-game relationships can change the result. Easier alternate lines and split tickets also change the price and risk.</Text>
-        </View>:null}
-        <TimeZoneChoice zone={timeZone} onChange={setTimeZone}/>
-        <AnalyzeParlay picks={picks} timeZone={timeZone}/>
-        <BrowseOdds timeZone={timeZone} onChoose={add} selectedIds={picks.map(p=>p.id)}/>
-        <Text style={s.note}>Private session · Entries stay in memory and clear when the app reloads. No account, payment or bet placement. For adults of legal betting age where permitted.</Text>
-      </View>}
+        <TicketInfo picks={picks} stake={stake} now={now}/>
+        <AnalyzeParlay picks={picks} timeZone={timeZone} stake={stake} floor={tab==='savvy'?target:''} autoRun={autoRun} prepared={prepared}/>
+        <Text style={s.note}>Research, not a guarantee. Confirm lines and rules in your sportsbook. Private session · selections clear on reload. No bet placement. For adults of legal betting age where permitted.</Text>
+        <Fold title="Offers & Sponsors" id="sponsor-info"><Text style={s.body}>No sponsor offers are running. Future sponsored offers will be clearly labeled and kept separate from ticket selection and research.</Text></Fold>
+      </View>
     </ScrollView>
-    <View style={s.nav}>{(['build','learn'] as const).map(t=><Pressable key={t} testID={'tab-'+(t==='build'?'check':t)} accessibilityRole="tab" accessibilityState={{selected:tab===t}}
-      onPress={()=>setTab(t)} style={[s.navItem,t===tab&&{backgroundColor:'#151E29'}]}><Text style={[s.cardTitle,t===tab&&s.lime]}>{t==='build'?'Build parlay':'Learn the odds'}</Text></Pressable>)}</View>
   </SafeAreaView></SafeAreaProvider>;
 }
 const s=StyleSheet.create({safe:{flex:1,backgroundColor:'#0B1016'},flex:{flex:1},stack:{gap:18},

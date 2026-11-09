@@ -41,7 +41,11 @@ def request():
 
 def fixture():
     odds = OddsService('synthetic-only', fetch=lambda route, params: event() if '/events/' in route else [event()], clock=lambda: NOW)
-    return ReportService(odds, context=ContextCatalog(''), clock=lambda: NOW).build(request())
+    result = ReportService(odds, context=ContextCatalog(''), clock=lambda: NOW, research=False).build(request())
+    # Keep the original v1 fixture usable by clients predating the additive research field.
+    for item in result['events']:
+        item.pop('research',None);item.pop('venue',None)
+    return result
 
 
 class PlayerPropsTests(unittest.TestCase):
@@ -64,7 +68,7 @@ class PlayerPropsTests(unittest.TestCase):
         self.assertEqual(a['updatedAt'], iso(NOW-10))
         self.assertEqual(a['fetchedAt'], iso(NOW))
         self.assertEqual(a['opposingAmericanOdds'], '-105')
-        self.assertEqual(q[-1]['settlement'], {'status': 'rules_required', 'pushPossible': True,
+        self.assertEqual(q[-1]['settlement'], {'status': 'rules_required', 'thresholdSemantics': 'over_under_integer', 'pushPossible': True,
                                               'nonParticipation': 'unknown', 'overtime': 'unknown'})
         alt = normalize_props(event(), SPORT, 'game-a', NOW, ['player_rush_yds_alternate'])
         self.assertTrue(all(x['market'] == 'player_rush_yds_alternate' for x in alt))
@@ -171,7 +175,7 @@ class PlayerPropsTests(unittest.TestCase):
         self.assertEqual(len(errors), 1)
 
     def test_report_mixes_four_markets_in_one_event_research_without_a_fake_forecast(self):
-        odds = self.service(); service = ReportService(odds, context=ContextCatalog(''), clock=lambda: NOW)
+        odds = self.service(); service = ReportService(odds, context=ContextCatalog(''), clock=lambda: NOW, research=False)
         result = service.build(request())
         self.assertEqual([l['matchStatus'] for l in result['legs']], ['matched']*4)
         self.assertEqual(len(result['events']), 1)
@@ -180,7 +184,7 @@ class PlayerPropsTests(unittest.TestCase):
         for leg in result['legs']:
             self.assertIsNone(leg['modelWinProbability'])
             self.assertEqual(len(leg['seven']), 7)
-        self.assertIn('participation', result['legs'][-1]['legImplication'])
+        self.assertIn('participation', result['legs'][-1]['legImplication'].lower())
         self.assertEqual(result['assessment']['alternatives'], [])
         self.assertIsNone(result['assessment']['offeredParlayDecimalPrice'])
 
@@ -196,7 +200,7 @@ class PlayerPropsTests(unittest.TestCase):
 
     def test_report_will_not_match_another_player_or_changed_price(self):
         data = request(); data['legs'][-1]['playerName'] = 'Not In Feed'
-        service = ReportService(self.service(), context=ContextCatalog(''), clock=lambda: NOW)
+        service = ReportService(self.service(), context=ContextCatalog(''), clock=lambda: NOW, research=False)
         result = service.build(data)
         self.assertEqual(result['legs'][-1]['matchStatus'], 'quote_unavailable')
         data = request(); data['legs'][-1]['americanOdds'] = '100'

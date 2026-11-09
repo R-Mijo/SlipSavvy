@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-07T23:30:00+00:00",
+  "generationMethod": "deterministic_evidence_findings",
+  "events": [
+    {
+      "eventId": "synthetic-weather",
+      "sport": "americanfootball_nfl",
+      "homeTeam": "Seattle Seahawks",
+      "awayTeam": "Arizona Cardinals",
+      "startAt": "2026-11-08T21:25:00Z",
+      "startAtPhoenix": "2026-11-08T14:25:00-07:00",
+      "context": {
+        "status": "unavailable",
+        "reason": "context_not_configured",
+        "evidence": [],
+        "facts": [],
+        "venue": null
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "research": {
+        "status": "partial",
+        "reason": null,
+        "mapping": {
+          "status": "matched",
+          "gameId": "2026_09_ARI_SEA",
+          "season": 2026,
+          "week": 9,
+          "seasonType": "REG",
+          "homeTeamCode": "SEA",
+          "awayTeamCode": "ARI",
+          "startAt": "2026-11-08T21:25:00Z",
+          "reportedVenue": {
+            "id": "SEA00",
+            "name": "Lumen Field"
+          }
+        },
+        "sources": [
+          {
+            "id": "nflverse-schedule-2026",
+            "dataset": "schedule",
+            "sourceUrl": "https://github.com/nflverse/nflverse-data/releases/download/schedules/games.csv",
+            "licenseUrl": "https://github.com/nflverse/nflverse-data/blob/main/LICENSE.md",
+            "attribution": "Synthetic test source",
+            "providerUpdatedAt": "2026-11-07T23:29:00+00:00",
+            "retrievedAt": "2026-11-07T23:30:00+00:00",
+            "metadataCheckedAt": "2026-11-07T23:30:00+00:00",
+            "validUntil": "2026-11-07T23:45:00+00:00",
+            "recordUpdatedAt": null,
+            "timeBasis": "file_snapshot_not_record_confirmation",
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ],
+        "coverage": {
+          "schedule": "matched",
+          "injuries": "unavailable",
+          "roster": "not_requested"
+        },
+        "players": [],
+        "teamInjuries": [],
+        "listedInjuryCount": 0,
+        "injuriesTruncated": false,
+        "warnings": [
+          "Synthetic fixture: additional research unavailable."
+        ]
+      },
+      "venue": {
+        "status": "matched_catalog",
+        "name": "Lumen Field",
+        "stadiumId": "SEA00",
+        "roof": "outdoor",
+        "roofState": "unknown",
+        "latitude": 47.595277777778,
+        "longitude": -122.33166666667,
+        "checkedAt": "2026-11-07T23:16:00+00:00",
+        "validUntil": "2026-11-07T23:45:00+00:00",
+        "sources": [
+          {
+            "kind": "roof",
+            "url": "https://stadium.org/lumen-field/stadium-features-facts/",
+            "publisher": "Washington State Public Stadium Authority"
+          },
+          {
+            "kind": "coordinates",
+            "url": "https://www.wikidata.org/w/index.php?title=Q612736&oldid=2541715106",
+            "publisher": "Wikidata, CC0; revision 2541715106"
+          }
+        ],
+        "scheduleSourceId": "nflverse-schedule-2026",
+        "basis": "exact_event_schedule_and_reviewed_venue_catalog"
+      },
+      "weather": {
+        "status": "unavailable",
+        "reason": "client_update_required_for_nws_weather"
+      }
+    }
+  ],
+  "legs": [
+    {
+      "id": "leg-1",
+      "selection": {
+        "id": "leg-1",
+        "eventId": "synthetic-weather",
+        "sport": "americanfootball_nfl",
+        "bookmaker": "fanduel",
+        "market": "h2h",
+        "outcome": "Seattle Seahawks",
+        "point": null,
+        "americanOdds": "-110"
+      },
+      "matchStatus": "matched",
+      "eventRef": "americanfootball_nfl:synthetic-weather",
+      "quote": {
+        "id": "synthetic-weather:fanduel:h2h:Seattle Seahawks",
+        "eventId": "synthetic-weather",
+        "event": "Arizona Cardinals at Seattle Seahawks",
+        "startAt": "2026-11-08T21:25:00Z",
+        "sport": "americanfootball_nfl",
+        "market": "h2h",
+        "label": "Seattle Seahawks",
+        "americanOdds": "-110",
+        "bookmaker": "FanDuel",
+        "bookmakerKey": "fanduel",
+        "homeTeam": "Seattle Seahawks",
+        "awayTeam": "Arizona Cardinals",
+        "outcome": "Seattle Seahawks",
+        "point": null,
+        "updatedAt": "2026-11-07T23:29:50+00:00",
+        "fetchedAt": "2026-11-07T23:30:00+00:00"
+      },
+      "quoteSource": {
+        "id": "quote:leg-1",
+        "provider": "The Odds API",
+        "sourceUrl": "https://the-odds-api.com/",
+        "updatedAt": "2026-11-07T23:29:50+00:00",
+        "retrievedAt": "2026-11-07T23:30:00+00:00"
+      },
+      "price": {
+        "americanOdds": "-110",
+        "decimalOdds": "1.90909090909",
+        "decimalFraction": {
+          "numerator": 21,
+          "denominator": 11
+        },
+        "breakEvenPercent": 52.38095238095238,
+        "basis": "bookmaker_price_not_win_forecast"
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "legImplication": "Requires Seattle Seahawks to win, subject to sportsbook draw/settlement rules.",
+      "weather": {
+        "status": "unavailable",
+        "reason": "client_update_required_for_nws_weather"
+      },
+      "modelWinProbability": null,
+      "probabilityBasis": "unavailable",
+      "seven": [
+        {
+          "seat": 1,
+          "name": "Jeeves",
+          "status": "needs_data",
+          "bullets": [
+            "Schedule matched NFL week 9. Injury/roster data are file snapshots, not confirmed participation."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        },
+        {
+          "seat": 2,
+          "name": "Luna",
+          "status": "needs_data",
+          "bullets": [
+            "Priced alternate lines and the customer payout floor are needed before ranking alternatives."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 3,
+          "name": "Pax",
+          "status": "needs_data",
+          "bullets": [
+            "Same-game legs require joint outcomes; no bankroll sizing or independence is assumed."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 4,
+          "name": "Winston",
+          "status": "ok",
+          "bullets": [
+            "Quoted decimal price 1.90909090909; break-even 52.38% is a price threshold."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        },
+        {
+          "seat": 5,
+          "name": "Lisa",
+          "status": "needs_data",
+          "bullets": [
+            "Requires Seattle Seahawks to win, subject to sportsbook draw/settlement rules. No supported win estimate is available."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        },
+        {
+          "seat": 6,
+          "name": "Diego",
+          "status": "not_applicable",
+          "bullets": [
+            "No promotion is applied; sportsbook settlement and any future token terms require verification."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 7,
+          "name": "Gus",
+          "status": "needs_data",
+          "bullets": [
+            "Whole-ticket value remains unestablished without joint model support and a combined quote."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        }
+      ]
+    }
+  ],
+  "assessment": {
+    "status": "insufficient_data",
+    "estimatedWinProbability": null,
+    "offeredParlayDecimalPrice": null,
+    "alternatives": [],
+    "reasons": [
+      "A calibrated joint ticket forecast and actual combined sportsbook quote are not configured.",
+      "Individual win probabilities are not multiplied into a same-game forecast.",
+      "Push and void settlement rules are required before comparing alternate lines or split tickets."
+    ],
+    "comparisonContext": {
+      "totalStake": "10.00",
+      "minimumTotalReturn": null,
+      "stakeBasis": "fixed_total_capital"
+    }
+  },
+  "weatherSchema": "legacy-v1"
+}

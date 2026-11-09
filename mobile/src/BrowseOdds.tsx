@@ -4,27 +4,24 @@ import {checkQuote,oddsRequest,type Quote} from './odds';
 import {dayLabel,dayParts,gameChoices,gameDay,gamePart,gameTime,localTimestamp,type DayPart} from './games';
 import PlayerProps from './PlayerProps';
 
-export default function BrowseOdds({onChoose,selectedIds=[],timeZone}:{onChoose:(q:Quote)=>void;selectedIds?:string[];timeZone:string}) {
-  const [sports,setSports]=useState<{key:string;title:string}[]>([]),[sport,setSport]=useState(''),[market,setMarket]=useState('h2h');
+export default function BrowseOdds({onChoose,selectedIds=[],timeZone,sport}:{sport:string;onChoose:(q:Quote)=>void;selectedIds?:string[];timeZone:string}) {
+  const [market,setMarket]=useState('h2h');
   const [quotes,setQuotes]=useState<Quote[]>([]),[event,setEvent]=useState(''),[date,setDate]=useState(''),[part,setPart]=useState<DayPart|''>(''),[page,setPage]=useState(0);
   const [loading,setLoading]=useState(false),[error,setError]=useState(''),[refresh,setRefresh]=useState(0);
   useEffect(()=>{
     let active=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),90000);
     setLoading(true);setError('');setQuotes([]);
     (async()=>{try{
-      if(!sport){const data=await oddsRequest('/api/sports',controller.signal);
-        if(!Array.isArray(data.sports))throw Error('Game data is unavailable.');
-        if(active)setSports(data.sports.filter((v:any)=>v&&typeof v.key==='string'&&typeof v.title==='string'));
-      }else{const data=await oddsRequest(`/api/odds?sport=${encodeURIComponent(sport)}&market=${market}`,controller.signal);
+      if(sport){const data=await oddsRequest(`/api/odds?sport=${encodeURIComponent(sport)}&market=${market}`,controller.signal);
         if(!Array.isArray(data.quotes))throw Error('Game data is unavailable.');
-        const valid=data.quotes.filter((q:Quote)=>{try{checkQuote(q);return true;}catch{return false;}});
+        const valid=data.quotes.filter((q:Quote)=>{try{checkQuote(q);return q.sport===sport&&q.market===market;}catch{return false;}});
         if(active){setQuotes(valid);setEvent(current=>valid.some((q:Quote)=>q.eventId===current)?current:'');}
       }
     }catch(e){if(active)setError(controller.signal.aborted?'Game data took too long. Try refresh.':(e as Error).message);}
     finally{clearTimeout(timer);if(active)setLoading(false);}})();
     return()=>{active=false;controller.abort();clearTimeout(timer);};
   },[sport,market,refresh]);
-  useEffect(()=>{setDate('');setPart('');setPage(0);setEvent('');},[timeZone]);
+  useEffect(()=>{setDate('');setPart('');setPage(0);setEvent('');},[timeZone,sport]);
   const button=(label:string,fn:()=>void,id:string,selected=false,disabled=false)=><Pressable key={id} testID={id}
     accessibilityRole="button" accessibilityState={{selected,disabled}} disabled={disabled} onPress={fn} style={[s.button,selected&&s.selected,disabled&&{opacity:.4}]}>
     <Text style={s.text}>{label}</Text></Pressable>;
@@ -37,7 +34,6 @@ export default function BrowseOdds({onChoose,selectedIds=[],timeZone}:{onChoose:
   return <View style={s.panel} testID="browse-odds">
     <Text style={s.title}>Choose your lines</Text>
     <Text style={s.note}>Select a sport, date and game. Tap a sportsbook line to add it to your parlay.</Text>
-    <View style={s.row}>{sports.map(v=>button(v.title,()=>{if(v.key!==sport){setSport(v.key);setEvent('');setDate('');setPart('');setPage(0);}},'sport-'+v.key,sport===v.key))}</View>
     {sport?<View style={s.row}>{([['h2h','Moneyline'],['spreads','Spread'],['totals','Total']] as const)
       .map(([key,label])=>button(label,()=>setMarket(key),'market-'+key,market===key))}</View>:null}
     {loading?<Text role="status" accessibilityLiveRegion="polite" style={s.note}>Loading games…</Text>:null}

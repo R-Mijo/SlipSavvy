@@ -1,7 +1,10 @@
 import React,{useEffect,useRef,useState} from 'react';
-import {Linking,Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
+import {Linking,Pressable,StyleSheet,Text,View} from 'react-native';
 import type {Pick} from './math';
 import {marketLabel} from './odds';
+import NflResearch from './NflResearch';
+import VenueWeather from './VenueWeather';
+import {Fold} from './FlowUI';
 import {localTimestamp} from './games';
 import {evidenceUrl,fetchReports,reportFresh,reportInput,type EventReport,type GameReports,type LegReport} from './reports';
 
@@ -19,9 +22,8 @@ const matchText:Record<string,string>={matched:'Current line matched',price_chan
   quote_unavailable:'This exact line is unavailable — refresh the games',ambiguous_match:'This line needs clarification',
   event_identity_conflict:'Game details conflict — refresh the games',provider_unavailable:'Game data is temporarily unavailable',
   expired_during_report:'This line expired during research — refresh the games'};
-const seatStatus:Record<string,string>={ok:'Checked',needs_data:'Needs data',blocked:'Check required',not_applicable:'Not applied'};
 function LegCard({leg,event,pick,index,timeZone}:{leg:LegReport;event?:EventReport;pick:Pick;index:number;timeZone:string}) {
-  const [open,setOpen]=useState(index===0),[seven,setSeven]=useState(false),[sources,setSources]=useState(false);
+  const [open,setOpen]=useState(index===0),[sources,setSources]=useState(false);
   const script=event?.gameScript;
   const leading=script?.scenarios.find(v=>v.id===script.mostLikelyScenarioId);
   return <View style={s.card} testID={'report-leg-'+index}>
@@ -35,23 +37,14 @@ function LegCard({leg,event,pick,index,timeZone}:{leg:LegReport;event?:EventRepo
       <Text style={s.note}>{pick.quote?.bookmaker} · {marketLabel(pick.quote?.market??'')}</Text>
       {event?<Text style={s.note}>{localTimestamp(event.startAt,timeZone)}</Text>:null}
       <Text style={s.text}>Current odds: {leg.price?.americanOdds??'Unavailable'}</Text>
-      <Text style={s.text}>Model win estimate: {leg.modelWinProbability===null?'Not available yet':(leg.modelWinProbability*100).toFixed(1)+'% (model supplied)'}</Text>
+      {leg.modelWinProbability!==null?<Text style={s.text}>Supplied model estimate: {(leg.modelWinProbability*100).toFixed(1)}%</Text>:null}
       {leg.price?<Text style={s.note}>Bookmaker break-even: {leg.price.breakEvenPercent.toFixed(2)}% · a price threshold, not a win forecast.</Text>:null}
       <Text style={s.section}>Game script & rationale</Text>
       {leading?<><Text style={s.text}>{leading.summary}</Text><Text style={s.note}>Highest-weight scenario in the supplied model. Research references and model evaluation remain the operator's responsibility.</Text></>:
         <Text style={s.note}>{script?.status==='model_supplied'?'The model has no uniquely highest-weight scenario.':'Current game research and a supported forecast are needed before a game script can be shown.'}</Text>}
       <Text style={s.text}>{leg.legImplication}</Text>
       {event?.context.facts.map((f,i)=><Text key={i} style={s.note}>{f.text}</Text>)}
-      <Text style={s.section}>Weather & roof</Text>
-      {event?.weather.status==='available'?<><Text style={s.text}>{event.weather.values!.temperature_2m}°F · wind {event.weather.values!.wind_speed_10m} mph · precipitation chance {event.weather.values!.precipitation_probability}%</Text>
-        <Text style={s.note}>Kickoff-hour forecast · {event.weather.attribution}. No automatic change to the win estimate.</Text>
-        {event.weather.sourceUrl?<SourceLink url={event.weather.sourceUrl} label="Weather source"/>:null}</>:
-        <Text style={s.note}>{event?.weather.status==='not_applicable'?'Indoor or confirmed closed roof: weather does not directly affect play.':'Verified venue, roof state or forecast data is not available yet.'}</Text>}
-      <Action title={seven?'Hide Sevenfold responses':'Sevenfold responses (7)'} id={'seven-toggle-'+index} secondary onPress={()=>setSeven(!seven)}/>
-      {seven?<View style={s.stack} testID={'seven-responses-'+index}>{leg.seven.map(seat=><View key={seat.name} style={s.finding}>
-        <Text style={s.title}>{seat.name} <Text style={s.note}>· {seatStatus[seat.status]}</Text></Text>
-        {seat.bullets.map((bullet,i)=><Text key={i} style={s.text}>{bullet}</Text>)}
-      </View>)}</View>:null}
+      <NflResearch research={event?.research} playerName={pick.quote?.playerName} timeZone={timeZone} SourceLink={SourceLink}/>
       <Action title={sources?'Hide sources':'Sources & timestamps'} secondary onPress={()=>setSources(!sources)}/>
       {sources?<View style={s.stack}>
         {leg.quoteSource?<><SourceLink url={leg.quoteSource.sourceUrl} label="Odds provider: The Odds API"/><Text style={s.note}>Updated {localTimestamp(leg.quoteSource.updatedAt,timeZone)} · retrieved {localTimestamp(leg.quoteSource.retrievedAt,timeZone)}</Text></>:null}
@@ -62,8 +55,7 @@ function LegCard({leg,event,pick,index,timeZone}:{leg:LegReport;event?:EventRepo
   </View>;
 }
 
-export default function AnalyzeParlay({picks,timeZone}:{picks:Pick[];timeZone:string}) {
-  const [stake,setStake]=useState('10'),[floor,setFloor]=useState(''),[options,setOptions]=useState(false);
+export default function AnalyzeParlay({picks,timeZone,stake,floor,autoRun=0,prepared}:{picks:Pick[];timeZone:string;stake:string;floor:string;autoRun?:number;prepared?:{key:string;data:GameReports}}) {
   const [report,setReport]=useState<{key:string;data:GameReports}|null>(null),[pending,setPending]=useState<string|null>(null);
   const [error,setError]=useState(''),[now,setNow]=useState(Date.now());
   const controller=useRef<AbortController|null>(null),sequence=useRef(0);
@@ -86,6 +78,7 @@ export default function AnalyzeParlay({picks,timeZone}:{picks:Pick[];timeZone:st
     }catch(e){if(id===sequence.current&&currentKey.current===key)setError(requestController.signal.aborted?'Analysis took too long. Try again.':(e as Error).message);}
     finally{if(timer)clearTimeout(timer);if(id===sequence.current)setPending(null);}
   };
+  useEffect(()=>{if(autoRun>0){if(prepared?.key===key&&reportFresh(prepared.data)){setNow(Date.now());setReport(prepared);}else void analyze();}},[autoRun]);
   const cancel=()=>{sequence.current++;controller.current?.abort();if(timerRef.current)clearTimeout(timerRef.current);setPending(null);setError('');};
   const active=report?.key===key?report.data:null,loading=pending===key;
   const fresh=active?reportFresh(active,now):false;
@@ -93,15 +86,6 @@ export default function AnalyzeParlay({picks,timeZone}:{picks:Pick[];timeZone:st
     <View style={s.card}>
       <Text style={s.title}>Analyze your parlay</Text>
       <Text style={s.note}>Preview: up to 8 lines across 4 games and 4 sport/market combinations.</Text>
-      <Text style={s.note}>Total stake</Text>
-      <View style={s.row}>{['5','10','25'].map(v=><Pressable key={v} testID={'stake-'+v} accessibilityRole="button" accessibilityState={{selected:stake===v}}
-        style={[s.chip,stake===v&&s.selected]} onPress={()=>setStake(v)}><Text style={s.text}>${v}</Text></Pressable>)}</View>
-      <Action title={options?'Hide stake & payout options':'Stake & payout options'} id="report-options" secondary onPress={()=>setOptions(!options)}/>
-      {options?<View style={s.stack}>
-        <Text style={s.text}>Custom total stake ($)</Text><TextInput testID="report-stake" accessibilityLabel="Custom total stake" style={s.input} value={stake} maxLength={12} keyboardType="decimal-pad" onChangeText={setStake}/>
-        <Text style={s.text}>Minimum total return ($), optional</Text><TextInput testID="report-floor" accessibilityLabel="Minimum total return" style={s.input} value={floor} maxLength={12} keyboardType="decimal-pad" onChangeText={setFloor} placeholder="No minimum" placeholderTextColor={colors.muted}/>
-        <Text style={s.note}>Your target is passed to the report. Priced alternatives and payout comparisons are still being built.</Text>
-      </View>:null}
       <Action title={loading?'Analyzing…':'Analyze my parlay'} id="analyze-parlay" disabled={!picks.length||loading} onPress={()=>{void analyze();}}/>
       {loading?<><Text role="status" accessibilityLiveRegion="polite" style={s.note}>Checking your lines and gathering the available evidence…</Text><Action title="Cancel analysis" id="cancel-analysis" secondary onPress={cancel}/></>:null}
       {error?<Text accessibilityRole="alert" testID="report-error" style={s.error}>{error}</Text>:null}
@@ -109,10 +93,11 @@ export default function AnalyzeParlay({picks,timeZone}:{picks:Pick[];timeZone:st
     {active&&!fresh?<Text accessibilityRole="alert" testID="report-expired" style={s.error}>This report needs a refresh. Analyze again with current pregame lines.</Text>:null}
     {active&&fresh?<View style={s.stack} testID="game-reports">
       <View style={s.card}><Text accessibilityRole="header" style={s.title}>{active.legs.length}-leg parlay review</Text>
-        <Text style={s.text}>Whole-parlay win chance: research needed</Text><Text style={s.note}>A supported joint forecast and the sportsbook's combined quote are needed before a value recommendation or payout comparison.</Text>
-        <Text style={s.note}>The seven currently provide structured evidence and math checks. Missing research stays visible; no win forecast is invented.</Text>
+        <Text style={s.text}>{active.legs.every(l=>l.matchStatus==='matched')?'Your selected prices still match. Check the research below before taking this ticket to your sportsbook.':'Some lines changed or could not be verified. Refresh those selections before using this ticket.'}</Text>
+        <Text style={s.note}>The meter uses odds. Research adds context; it does not turn that score into a forecast.</Text>
       </View>
-      {active.legs.map((leg,i)=><LegCard key={leg.id+active.generatedAt} leg={leg} timeZone={timeZone} index={i} pick={picks[i]} event={active.events.find(e=>e.sport+':'+e.eventId===leg.eventRef)}/>)}
+      <Fold title="Weather Info" id="weather-info">{active.events.map(event=><View key={event.sport+event.eventId} style={s.stack}><Text style={s.title}>{event.awayTeam} at {event.homeTeam}</Text><VenueWeather event={event} timeZone={timeZone} SourceLink={SourceLink}/></View>)}{!active.events.length?<Text style={s.note}>No matched games have weather evidence yet.</Text>:null}</Fold>
+      <Fold title="Analytic Info" id="analytic-info">{active.legs.map((leg,i)=><LegCard key={leg.id+active.generatedAt} leg={leg} timeZone={timeZone} index={i} pick={picks[i]} event={active.events.find(e=>e.sport+':'+e.eventId===leg.eventRef)}/>)}</Fold>
     </View>:null}
   </View>;
 }
