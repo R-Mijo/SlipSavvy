@@ -47,7 +47,10 @@ export default function BrowseOdds({onChoose,selectedIds=[],timeZone,sport}:{spo
       <View style={s.row}>{dayParts.map(value=>{const count=dated.filter(q=>gamePart(q.startAt,timeZone)===value).length;
         return button(value[0].toUpperCase()+value.slice(1)+' ('+count+')',()=>{setPart(value);setEvent('');setPage(0);},'part-'+value,value===chosenPart,!count);})}</View>
       <Text style={s.note}>Morning before noon · afternoon noon–4:59 PM · night from 5 PM. Available dates reflect the current feed.</Text>
-      {visible.map(q=>button(`${q.event}\n${gameTime(q.startAt,timeZone)}`,()=>setEvent(q.eventId),'game-'+q.eventId,event===q.eventId))}
+      {visible.map(game=><View key={game.eventId} style={s.gameCard}>
+        {button(`${game.event}\n${gameTime(game.startAt,timeZone)}`,()=>setEvent(game.eventId),'game-'+game.eventId,event===game.eventId)}
+        {event!==game.eventId?<View style={s.row}>{quotes.filter(q=>q.eventId===game.eventId).map(q=>button(`${q.label} · ${Number(q.americanOdds)>0?'+':''}${q.americanOdds}\n${q.bookmaker}`,()=>{try{checkQuote(q);onChoose(q);}catch(e){setError((e as Error).message);}},'quote-'+q.id,selectedIds.includes(q.id)))}</View>:null}
+      </View>)}
       {pages>1?<View style={s.row}>
         {button('Previous',()=>{setPage(currentPage-1);setEvent('');},'games-previous',false,currentPage===0)}
         <Text style={s.note}>{currentPage*8+1}–{Math.min((currentPage+1)*8,filtered.length)} of {filtered.length}</Text>
@@ -69,7 +72,7 @@ export default function BrowseOdds({onChoose,selectedIds=[],timeZone,sport}:{spo
     <Text style={s.note}>Prices use a five-minute shared cache and can change. Confirm with your sportsbook.</Text>
   </View>;
 }
-const s=StyleSheet.create({panel:{backgroundColor:'#151E29',padding:18,borderRadius:18,gap:12},
+const s=StyleSheet.create({gameCard:{gap:6,borderBottomWidth:1,borderColor:'#344252',paddingBottom:10},panel:{backgroundColor:'#151E29',padding:18,borderRadius:18,gap:12},
   row:{flexDirection:'row',flexWrap:'wrap',alignItems:'center',gap:8},dates:{gap:8,paddingVertical:4},
   button:{backgroundColor:'#0E151E',padding:12,borderRadius:10,minHeight:44,borderWidth:1,borderColor:'#344252'},
   selected:{borderColor:'#C9F84A'},text:{color:'#F1F5F9',fontSize:14,lineHeight:21},label:{color:'#F1F5F9',fontWeight:'600',fontSize:14},

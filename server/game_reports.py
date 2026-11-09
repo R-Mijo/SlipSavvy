@@ -78,8 +78,8 @@ def parse_request(data):
         result.append({'id': identity, 'eventId': event, 'sport': sport, 'bookmaker': book,
                        'market': market, 'outcome': outcome, 'point': point, 'americanOdds': expected,
                        **({'playerName': player} if player is not None else {})})
-    if len({(l['sport'], l['eventId']) for l in result}) > 4 or len({(l['sport'], l['market']) for l in result}) > 4:
-        raise ValueError('Keep to four events and four sport/market lookups per report')
+    if len({(l['sport'], l['eventId']) for l in result}) > 8 or len({(l['sport'], l['market']) for l in result}) > 8:
+        raise ValueError('Keep to eight events and eight sport/market lookups per report')
     return {'legs': result, 'totalStake': stake, 'minimumTotalReturn': floor}
 
 

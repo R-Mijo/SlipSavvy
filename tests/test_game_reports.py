@@ -66,6 +66,14 @@ class NoWeather:
 
 
 class ReportTests(unittest.TestCase):
+    def test_six_distinct_games_reach_the_report_and_ninth_leg_is_rejected(self):
+        self.odds = OddsService('synthetic-only', fetch=lambda *args: [event('six-'+str(i)) for i in range(6)], clock=lambda: NOW)
+        result = self.service().build(request([leg('L'+str(i), event_id='six-'+str(i)) for i in range(6)]))
+        self.assertEqual(len(result['events']), 6)
+        self.assertTrue(all(l['matchStatus']=='matched' for l in result['legs']))
+        with self.assertRaises(ValueError):
+            parse_request(request([leg('L'+str(i), event_id='nine-'+str(i)) for i in range(9)]))
+
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)

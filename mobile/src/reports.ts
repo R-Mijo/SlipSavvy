@@ -48,8 +48,8 @@ export function reportInput(picks:Pick[],stake:string,floor:string,now=Date.now(
   if(floor.trim())result.minimumTotalReturn=amount(floor,10000000);
   const identities=result.legs.map(({sport,eventId,bookmaker,market,outcome,point,playerName})=>JSON.stringify([sport,eventId,bookmaker,market,outcome,point,playerName]));
   if(new Set(identities).size!==identities.length)throw Error('Remove duplicate selections before analysis.');
-  if(new Set(result.legs.map(l=>l.sport+':'+l.eventId)).size>4||new Set(result.legs.map(l=>l.sport+':'+l.market)).size>4)
-    throw Error('This preview analyzes up to four games and four sport/market combinations at once.');
+  if(new Set(result.legs.map(l=>l.sport+':'+l.eventId)).size>8||new Set(result.legs.map(l=>l.sport+':'+l.market)).size>8)
+    throw Error('This preview analyzes up to eight games and eight sport/market combinations at once.');
   return result;
 }
 
@@ -116,7 +116,7 @@ export function decodeReports(value:unknown,input:ReportInput):GameReports {
     a.estimatedWinProbability!==null||a.offeredParlayDecimalPrice!==null||list(a.alternatives,0).length||
     comparison.totalStake!==input.totalStake||comparison.minimumTotalReturn!==(input.minimumTotalReturn??null)||comparison.stakeBasis!=='fixed_total_capital')
     throw Error('Unsupported report version or ticket assessment.');
-  const events:EventReport[]=list(d.events,4).map(v=>{const e=record(v),c=record(e.context);
+  const events:EventReport[]=list(d.events,8).map(v=>{const e=record(v),c=record(e.context);
     return {eventId:str(e.eventId,100),sport:str(e.sport,100),homeTeam:str(e.homeTeam,200),awayTeam:str(e.awayTeam,200),
       startAt:date(e.startAt),startAtPhoenix:date(e.startAtPhoenix),gameScript:script(e.gameScript),weather:weather(e.weather,date(e.startAt)),
       venue:decodeVenue(e.venue,e.research),

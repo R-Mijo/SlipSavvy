@@ -23,7 +23,7 @@ async function app(){
 }
 test('builder proposes a below-target ticket, researches it automatically and compares fixed-budget splits',async()=>{
  const a=await app();try{
-  await a.wait('savvy-builder');assert.equal(a.d.querySelectorAll('[role=tab]').length,2);
+  await a.wait('savvy-builder');await a.wait('builder-legs-6');assert.equal(a.find('ticket-toggle').getAttribute('aria-expanded'),'false');await a.click('sports-handle');assert.equal(a.find('sports-handle').getAttribute('aria-expanded'),'false');await a.click('sports-handle');assert.equal(a.d.querySelectorAll('[role=tab]').length,2);
   await a.click('sport-basketball_nba');assert.equal(a.state.odds.length,0,'sport selection alone spends no odds requests');
   await a.click('builder-legs-2');await a.click('stake-20');await a.fill('builder-target','100');await a.click('build-savvy');
   await a.wait('builder-results');await a.wait('game-reports');

@@ -1,5 +1,5 @@
-import React,{useEffect,useState} from 'react';
-import {Image,Pressable,ScrollView,StyleSheet,Text,View} from 'react-native';
+import React,{useEffect,useRef,useState} from 'react';
+import {Image,PanResponder,Pressable,ScrollView,StyleSheet,Text,View} from 'react-native';
 import {SafeAreaProvider,SafeAreaView} from 'react-native-safe-area-context';
 import {StatusBar} from 'expo-status-bar';
 import BrowseOdds from './src/BrowseOdds';
@@ -19,6 +19,10 @@ export default function App(){
   const [timeZone,setTimeZone]=useState(deviceZone),[sport,setSport]=useState('');
   const [tab,setTab]=useState<'savvy'|'check'>('savvy'),[picks,setPicks]=useState<Pick[]>([]);
   const [notice,setNotice]=useState(''),[error,setError]=useState(''),[stake,setStake]=useState('10'),[target,setTarget]=useState('100'),[autoRun,setAutoRun]=useState(0);
+  const [sportsOpen,setSportsOpen]=useState(true),[ticketOpen,setTicketOpen]=useState(false);
+  const scroll=useRef<React.ElementRef<typeof ScrollView>>(null),ticketY=useRef(0);
+  const sportsGesture=useRef(PanResponder.create({onMoveShouldSetPanResponder:(_,g)=>Math.abs(g.dy)>12&&Math.abs(g.dy)>Math.abs(g.dx)*1.5,onPanResponderRelease:(_,g)=>{if(g.dy < -25)setSportsOpen(false);if(g.dy>25)setSportsOpen(true);}})).current;
+  const ticketGesture=useRef(PanResponder.create({onMoveShouldSetPanResponder:(_,g)=>Math.abs(g.dy)>12&&Math.abs(g.dy)>Math.abs(g.dx)*1.5,onPanResponderRelease:(_,g)=>{if(g.dy < -25){setTicketOpen(true);scroll.current?.scrollTo({y:ticketY.current,animated:true});}if(g.dy>25)setTicketOpen(false);}})).current;
   const [prepared,setPrepared]=useState<{key:string;data:GameReports}|undefined>(undefined);
   const [now,setNow]=useState(Date.now());
   useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),15000);return()=>clearInterval(timer);},[]);
@@ -28,9 +32,12 @@ export default function App(){
   return <SafeAreaProvider><SafeAreaView style={s.safe}>
     <StatusBar style="light"/>
     <View style={s.brandRow}><Image source={require('./assets/logo-horizontal.png')} accessible accessibilityLabel="SlipSavvy" style={s.brand} resizeMode="contain"/><Text style={s.badge}>RESEARCH PREVIEW</Text></View>
-    <ScrollView contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+    <View style={{paddingHorizontal:16,paddingBottom:6}}>
+      <Pressable {...sportsGesture.panHandlers} testID="sports-handle" accessibilityRole="button" aria-expanded={sportsOpen} accessibilityLabel={sportsOpen?'Hide sport picker':'Show sport picker'} onPress={()=>setSportsOpen(!sportsOpen)} style={s.row}><Text style={s.lime}>Sports {sportsOpen?'⌃':'⌄'}</Text><Text style={s.note}>Swipe or tap</Text></Pressable>
+      <View style={!sportsOpen?{display:'none'}:undefined}><SportPicker sport={sport} onChange={setSport}/></View>
+    </View>
+    <ScrollView ref={scroll} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
       <View style={s.stack}>
-        <SportPicker sport={sport} onChange={setSport}/>
         <View style={s.nav}>{(['savvy','check'] as const).map(t=><Pressable key={t} testID={'tab-'+t} accessibilityRole="tab" accessibilityState={{selected:tab===t}}
           onPress={()=>setTab(t)} style={[s.navItem,t===tab&&{backgroundColor:'#151E29',borderColor:'#C9F84A',borderWidth:1}]}><Text style={[s.cardTitle,t===tab&&s.lime]}>{t==='savvy'?'Savvy Parlay Builder':'My Picks & Research'}</Text></Pressable>)}</View>
         {tab==='savvy'?<SavvyBuilder sport={sport} stake={stake} target={target} onStake={setStake} onTarget={setTarget} onChoose={generated}/>:<>
@@ -38,8 +45,11 @@ export default function App(){
           <TimeZoneChoice zone={timeZone} onChange={setTimeZone}/>
           <BrowseOdds sport={sport} timeZone={timeZone} onChoose={add} selectedIds={picks.map(p=>p.id)}/>
         </>}
-        <View style={s.card} testID="parlay-tray">
+        <View onLayout={e=>{ticketY.current=e.nativeEvent.layout.y;}} style={s.card} testID="parlay-tray">
           <View style={s.row}><Text style={s.cardTitle}>Your parlay</Text><Text style={s.lime} testID="parlay-count">{picks.length}/8 legs</Text></View>
+          <Pressable testID="ticket-toggle" accessibilityRole="button" aria-expanded={ticketOpen} onPress={()=>setTicketOpen(!ticketOpen)} style={s.remove}><Text style={s.lime}>{ticketOpen?'Hide selections':'Show selections'}</Text></Pressable>
+          {picks.length>=7?<Text testID="long-shot-note" style={s.body}>Seven or more legs is a long-shot ticket, much like buying a lottery ticket. We recommend 2–6 legs or comparing smaller tickets. Your actual odds depend on the selections.</Text>:null}
+          <View style={!ticketOpen?{display:'none'}:undefined}>
           {!picks.length?<Text style={s.body}>Your selections will appear here.</Text>:picks.map((pick,i)=><View style={s.pick} key={pick.id} testID={'pick-'+i}>
             <View style={s.row}><Text style={[s.selection,s.flex]}>{pick.label}</Text><Text style={s.price}>{Number(pick.odds)>0?'+':''}{pick.odds}</Text></View>
             {pick.quote&&propThresholdNotice(pick.quote)?<Text style={s.body}>{propThresholdNotice(pick.quote)}</Text>:null}
@@ -48,6 +58,7 @@ export default function App(){
               <Pressable testID={'remove-'+i} accessibilityRole="button" accessibilityLabel={'Remove '+pick.label} style={s.remove}
                 onPress={()=>{setPicks(picks.filter(p=>p.id!==pick.id));setNotice('Selection removed.');setError('');}}><Text style={s.lime}>Remove</Text></Pressable></View>
           </View>)}
+          </View>
           {notice?<Text accessibilityLiveRegion="polite" style={s.note}>{notice}</Text>:null}
           {error?<Text accessibilityRole="alert" testID="error" style={s.error}>{error}</Text>:null}
           {tab==='check'?<View style={flow.wrap}>{['5','10','20'].map(v=><Pressable key={v} testID={'stake-'+v} accessibilityRole="button" accessibilityLabel={'Stake $'+v} accessibilityState={{selected:stake===v}} onPress={()=>setStake(v)} style={[flow.chip,stake===v&&flow.selected]}><Text style={flow.text}>${v}</Text></Pressable>)}</View>:null}
@@ -59,6 +70,7 @@ export default function App(){
         <Fold title="Offers & Sponsors" id="sponsor-info"><Text style={s.body}>No sponsor offers are running. Future sponsored offers will be clearly labeled and kept separate from ticket selection and research.</Text></Fold>
       </View>
     </ScrollView>
+    <Pressable {...ticketGesture.panHandlers} testID="ticket-dock" accessibilityRole="button" accessibilityLabel="Open my parlay" onPress={()=>{setTicketOpen(true);scroll.current?.scrollTo({y:ticketY.current,animated:true});}} style={[s.nav,{justifyContent:'space-between',minHeight:52}]}><Text style={s.cardTitle}>My Parlay · {picks.length} legs</Text><Text style={s.lime}>Review ↑</Text></Pressable>
   </SafeAreaView></SafeAreaProvider>;
 }
 const s=StyleSheet.create({safe:{flex:1,backgroundColor:'#0B1016'},flex:{flex:1},stack:{gap:18},

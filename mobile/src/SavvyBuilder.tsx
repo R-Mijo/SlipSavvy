@@ -59,7 +59,7 @@ export default function SavvyBuilder({sport,stake,target,onStake,onTarget,onChoo
     <Text style={flow.note}>Choose your preferences. We’ll suggest a ticket and research its lines.</Text>
     <View style={flow.card}>
       <Text style={flow.subtitle}>Sportsbook</Text><View style={flow.wrap}>{chip('FanDuel','book-fanduel',book==='fanduel',()=>setBook('fanduel'))}{chip('DraftKings','book-draftkings',book==='draftkings',()=>setBook('draftkings'))}</View>
-      <Text style={flow.subtitle}>Legs</Text><View style={flow.wrap}>{[2,3,4].map(n=>chip(String(n),'builder-legs-'+n,legs===n,()=>setLegs(n)))}</View>
+      <Text style={flow.subtitle}>Legs</Text><View style={flow.wrap}>{[2,3,4,5,6].map(n=>chip(String(n),'builder-legs-'+n,legs===n,()=>setLegs(n)))}</View>
       <Text style={flow.subtitle}>Stake</Text><View style={flow.wrap}>{['5','10','20'].map(v=>chip('$'+v,'stake-'+v,stake===v,()=>onStake(v)))}</View>
       <Text style={flow.subtitle}>Desired total return ($)</Text><TextInput testID="builder-target" accessibilityLabel="Desired total return including stake" keyboardType="decimal-pad" value={target} onChangeText={onTarget} maxLength={9} style={flow.input}/>
       <Text style={flow.note}>Includes your stake. The target guides selection; it is not a promised payout.</Text>

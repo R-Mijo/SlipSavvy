@@ -11,7 +11,7 @@ export function Fold({title,id,children}:{title:string;id:string;children:React.
 }
 export function Meter({picks,now}:{picks:Pick[];now:number}) {
   const price=ticketPrice(picks,now),level=price?levels[Math.min(4,Math.floor(price.score/20))]:null;
-  return <View style={flow.stack} testID="confidence-meter"><Text style={flow.subtitle}>Odds-based confidence</Text>
+  return <View style={flow.stack} testID="confidence-meter"><Text style={flow.subtitle}>Odds Profile</Text>
     {price&&level?<><Text style={[flow.score,{color:level.color}]}>{price.score<.1?'<0.1':price.score.toFixed(1)}/100 · {level.label}</Text>
       <View style={flow.spectrum} accessibilityRole="progressbar" accessibilityLabel="Price-implied score" accessibilityValue={{min:0,max:100,now:price.score}}>
         {levels.map(l=><View key={l.label} style={{flex:1,height:8,backgroundColor:l.color}}/>)}
