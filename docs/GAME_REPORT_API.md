@@ -65,6 +65,12 @@ Props share the unchanged ten-credit/UTC-day reservation with main/alternate loo
 
 NFL reports add `events[].research`: partial/unavailable status, exact schedule mapping, per-dataset missing/stale/unknown coverage, selected-player roster/GSIS matching, reported injury/practice fields, a bounded team injury list and attributed source snapshots. All file update, retrieval and metadata-check times remain separate; per-player confirmation is null. No current participation, healthy-player conclusion or probability adjustment is inferred. See [identity, source/cache bounds, deployment defaults and full schema behavior](NFL_RESEARCH.md). Existing curated context/forecasts remain separate. Non-NFL reports do not fetch NFL sources, and older clients may ignore this additive field.
 
+## Event venue and NWS kickoff weather
+
+The updated phone sends `X-SlipSavvy-Weather-Schema: nws-v1`. Omitted header defaults to `legacy-v1`; an older phone receives an explicitly unavailable NWS weather state instead of a new value format its reader would reject. Other report fields, existing Open-Meteo weather and indoor/unavailable states remain readable. `weatherSchema` identifies the selected response capability. Unsupported explicit capability values are rejected before research. See [compatibility details](VENUE_WEATHER.md#installed-client-compatibility).
+
+Additive `events[].venue` matches the reported event stadium ID/name to independently reviewed roof/coordinate facts, with source and validity times. The current pilot covers Lumen Field forecasts, fixed-indoor U.S. Bank Stadium and unknown-retractable Lucas Oil Stadium. Other venues do not inherit a home-city forecast. NWS available forecasts preserve update versus retrieval time, exact kickoff hour, nullable unit-bearing values, wind ranges and missing fields. No probability change. Default free `REPORT_WEATHER_MODE=nws`; explicit disabled and existing Open-Meteo modes are respected. See [coverage, schema and bounds](VENUE_WEATHER.md).
+
 ## Response
 
 `200` means a report was assembled; it does not mean every source is available or the bet is endorsed.
@@ -147,7 +153,7 @@ An optional entry `forecast` has `modelId`, `modelVersion`, `generatedAt`, `vali
 
 ### Weather
 
-`OpenMeteoWeather` uses a fixed provider host and verified server-owned coordinates. Default `REPORT_WEATHER_MODE=disabled` performs no weather network calls. `evaluation` selects the free endpoint **only where use qualifies under its noncommercial terms**. `commercial` selects the customer endpoint and requires server-only `OPEN_METEO_API_KEY`. No paid plan is activated by this code. Commercial product/research usage requires an appropriate provider agreement, not merely setting the evaluation flag.
+The default `REPORT_WEATHER_MODE=nws` uses the free NWS adapter and reviewed venue catalog described above. Explicit `REPORT_WEATHER_MODE=disabled` performs no weather network calls. The retained `OpenMeteoWeather` adapter uses a fixed provider host and verified server-owned coordinates: `evaluation` selects the free endpoint **only where use qualifies under its noncommercial terms**; `commercial` selects the customer endpoint and requires server-only `OPEN_METEO_API_KEY`. No paid plan is activated by this code. Commercial Open-Meteo usage requires an appropriate provider agreement, not merely setting the evaluation flag.
 
 Weather uses the forecast hour containing kickoff UTC, with explicit °F, mph and percent units; it is a forecast, not an observation. Missing kickoff hours, wrong units, provider failures and games outside the six-day supported window return unavailable. Known indoor or confirmed closed-roof games return `not_applicable` without fetching. Unknown venue/roof returns unavailable. Relevant outdoor weather is researched once per event/request and cached for five minutes across reports (32-entry LRU). There is no automatic weather-to-win-probability adjustment.
 
@@ -167,11 +173,11 @@ Authentication is checked before reading POST bodies. Errors never expose provid
 
 Partially unavailable sources normally yield 200 with explicit per-leg/source states. One report runs per process. There is a 20-second work budget; no new source work starts after expiry and late odds/weather results are discarded. Built-in HTTP adapters cap bytes and check elapsed time between reads with socket waits capped at five seconds; an in-progress socket read can overrun the work budget by up to five seconds. Trusted injected adapters must honor their timeout contract. The WSGI host must also enforce connection/body-read timeouts; an application-level content-length cap does not prevent slow clients by itself.
 
-Built-in provider HTTP reads reject redirects, including same-host redirects, to keep credential-bearing requests on the configured endpoints and prevent redirect chains from expanding the work budget.
+Odds, NWS and Open-Meteo HTTP reads reject redirects, including same-host redirects. The credential-free nflverse CSV transport permits only its separately validated single public GitHub-CDN redirect. Redirect chains cannot expand the work budget.
 
 Preview access is extractable from an APK and is not individual production authentication. Rate/cache/quota state is in memory, lost on restart and not shared across workers. Keep the documented single-worker beta setup; durable shared controls and per-user authentication remain required for broader distribution.
 
-No route is deployed until the PR is merged and the operator deploys it. This PR changes no mobile files and does not start a build. Live endpoint/provider integration is not claimed by synthetic tests.
+No route is deployed until an authorized release. Source and mobile changes do not imply a new native build or device execution. Synthetic tests do not establish live sportsbook integration; separately labeled public-source checks do not verify deployment.
 
 ## Verification and remaining work
 

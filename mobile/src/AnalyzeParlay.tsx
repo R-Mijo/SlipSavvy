@@ -3,6 +3,7 @@ import {Linking,Pressable,StyleSheet,Text,TextInput,View} from 'react-native';
 import type {Pick} from './math';
 import {marketLabel} from './odds';
 import NflResearch from './NflResearch';
+import VenueWeather from './VenueWeather';
 import {localTimestamp} from './games';
 import {evidenceUrl,fetchReports,reportFresh,reportInput,type EventReport,type GameReports,type LegReport} from './reports';
 
@@ -44,11 +45,7 @@ function LegCard({leg,event,pick,index,timeZone}:{leg:LegReport;event?:EventRepo
       <Text style={s.text}>{leg.legImplication}</Text>
       {event?.context.facts.map((f,i)=><Text key={i} style={s.note}>{f.text}</Text>)}
       <NflResearch research={event?.research} playerName={pick.quote?.playerName} timeZone={timeZone} SourceLink={SourceLink}/>
-      <Text style={s.section}>Weather & roof</Text>
-      {event?.weather.status==='available'?<><Text style={s.text}>{event.weather.values!.temperature_2m}°F · wind {event.weather.values!.wind_speed_10m} mph · precipitation chance {event.weather.values!.precipitation_probability}%</Text>
-        <Text style={s.note}>Kickoff-hour forecast · {event.weather.attribution}. No automatic change to the win estimate.</Text>
-        {event.weather.sourceUrl?<SourceLink url={event.weather.sourceUrl} label="Weather source"/>:null}</>:
-        <Text style={s.note}>{event?.weather.status==='not_applicable'?'Indoor or confirmed closed roof: weather does not directly affect play.':'Verified venue, roof state or forecast data is not available yet.'}</Text>}
+      <VenueWeather event={event} timeZone={timeZone} SourceLink={SourceLink}/>
       <Action title={seven?'Hide Sevenfold responses':'Sevenfold responses (7)'} id={'seven-toggle-'+index} secondary onPress={()=>setSeven(!seven)}/>
       {seven?<View style={s.stack} testID={'seven-responses-'+index}>{leg.seven.map(seat=><View key={seat.name} style={s.finding}>
         <Text style={s.title}>{seat.name} <Text style={s.note}>· {seatStatus[seat.status]}</Text></Text>

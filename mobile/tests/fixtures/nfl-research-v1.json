@@ -9,7 +9,11 @@
     "seasonType": "REG",
     "homeTeamCode": "BUF",
     "awayTeamCode": "MIA",
-    "startAt": "2026-11-08T18:00:00+00:00"
+    "startAt": "2026-11-08T18:00:00+00:00",
+    "reportedVenue": {
+      "id": null,
+      "name": "Unverified test venue"
+    }
   },
   "sources": [
     {

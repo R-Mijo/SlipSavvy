@@ -43,7 +43,8 @@ def fixture():
     odds = OddsService('synthetic-only', fetch=lambda route, params: event() if '/events/' in route else [event()], clock=lambda: NOW)
     result = ReportService(odds, context=ContextCatalog(''), clock=lambda: NOW, research=False).build(request())
     # Keep the original v1 fixture usable by clients predating the additive research field.
-    for item in result['events']: item.pop('research',None)
+    for item in result['events']:
+        item.pop('research',None);item.pop('venue',None)
     return result
 
 

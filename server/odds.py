@@ -561,6 +561,9 @@ def report_application(environ,start_response):
         elif environ.get('CONTENT_TYPE','').split(';')[0].strip().lower()!='application/json':
             status='415 Unsupported Media Type';result={'error':'JSON required.'}
         else:
+            weather_schema=environ.get('HTTP_X_SLIPSAVVY_WEATHER_SCHEMA','legacy-v1')
+            if weather_schema not in {'legacy-v1','nws-v1'}:
+                raise ValueError('Unsupported weather response schema')
             length=environ.get('CONTENT_LENGTH','')
             if not length.isascii() or not length.isdecimal() or len(length)>8:
                 raise ValueError('Content length required')
@@ -570,7 +573,7 @@ def report_application(environ,start_response):
             else:
                 raw=environ['wsgi.input'].read(size)
                 if len(raw)!=size:raise ValueError('Incomplete body')
-                result=game_reports().build(strict_json(raw))
+                result=weather_response(game_reports().build(strict_json(raw)),weather_schema)
     except ReportBusy:
         status='429 Too Many Requests';headers.append(('Retry-After','5'))
         result={'error':'The preview report service is busy. Try again shortly.'}
@@ -584,3 +587,21 @@ def report_application(environ,start_response):
     headers.append(('Content-Length',str(len(encoded))))
     start_response(status,headers)
     return [encoded]
+
+
+def weather_response(report, schema='legacy-v1'):
+    """Preserve installed clients; never mutate cached source weather objects.
+
+    Legacy readers require Open-Meteo numeric fields and cannot represent NWS
+    ranges/missing values faithfully. Withhold NWS weather until the client opts
+    in, instead of manufacturing values or returning an unreadable v1 report.
+    """
+    if schema not in {'legacy-v1','nws-v1'}:
+        raise ValueError('Unsupported weather response schema')
+    def project(weather):
+        if schema=='legacy-v1' and weather.get('provider')=='NWS' and weather.get('status')=='available':
+            return {'status':'unavailable','reason':'client_update_required_for_nws_weather'}
+        return weather
+    return dict(report,weatherSchema=schema,
+                events=[dict(event,weather=project(event['weather'])) for event in report['events']],
+                legs=[dict(leg,weather=project(leg['weather'])) for leg in report['legs']])

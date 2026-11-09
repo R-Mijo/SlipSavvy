@@ -237,7 +237,9 @@ def match_game(rows, event, now):
             if row.get('game_id') != identity or any(clean(row.get(k,'')) is not None for k in ('home_score','away_score')):
                 continue
             candidates.append({'status':'matched', 'gameId':identity,'season':season,'week':week,
-                               'seasonType':'REG','homeTeamCode':home,'awayTeamCode':away,'startAt':iso(start)})
+                               'seasonType':'REG','homeTeamCode':home,'awayTeamCode':away,'startAt':iso(start),
+                               'reportedVenue':{'id':clean(row.get('stadium_id',''),40),
+                                                'name':clean(row.get('stadium',''),150)}})
         except (KeyError,TypeError,ValueError):
             continue
     if len(candidates) != 1:
