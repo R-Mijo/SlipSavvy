@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-11-07T19:00:00+00:00",
+  "generationMethod": "deterministic_evidence_findings",
+  "events": [
+    {
+      "eventId": "game-a",
+      "sport": "americanfootball_nfl",
+      "homeTeam": "Synthetic Home",
+      "awayTeam": "Synthetic Away",
+      "startAt": "2026-11-07T21:00:00+00:00",
+      "startAtPhoenix": "2026-11-07T14:00:00-07:00",
+      "context": {
+        "status": "unavailable",
+        "reason": "context_not_configured",
+        "evidence": [],
+        "facts": [],
+        "venue": null
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "research": {
+        "status": "unavailable",
+        "reason": "research_disabled",
+        "mapping": null,
+        "sources": [],
+        "coverage": {
+          "schedule": "unavailable",
+          "injuries": "unavailable",
+          "roster": "not_requested"
+        },
+        "players": [],
+        "teamInjuries": [],
+        "listedInjuryCount": 0,
+        "injuriesTruncated": false,
+        "warnings": [
+          "No supported probability adjustment is derived from these snapshots."
+        ]
+      },
+      "venue": {
+        "status": "unavailable",
+        "reason": "event_venue_evidence_required"
+      },
+      "weather": {
+        "status": "unavailable",
+        "reason": "verified_venue_required"
+      }
+    }
+  ],
+  "legs": [
+    {
+      "id": "leg-1",
+      "selection": {
+        "id": "leg-1",
+        "eventId": "game-a",
+        "sport": "americanfootball_nfl",
+        "bookmaker": "fanduel",
+        "market": "player_rush_yds_alternate",
+        "outcome": "Over",
+        "point": 60,
+        "americanOdds": "-110",
+        "playerName": "Synthetic Player A"
+      },
+      "matchStatus": "matched",
+      "eventRef": "americanfootball_nfl:game-a",
+      "quote": {
+        "id": "game-a:fanduel:player_rush_yds_alternate:Synthetic Player A \u00b7 Over 60 rushing yards",
+        "eventId": "game-a",
+        "event": "Synthetic Away at Synthetic Home",
+        "startAt": "2026-11-07T21:00:00+00:00",
+        "sport": "americanfootball_nfl",
+        "market": "player_rush_yds_alternate",
+        "label": "Synthetic Player A \u00b7 Over 60 rushing yards",
+        "americanOdds": "-110",
+        "bookmaker": "FanDuel",
+        "bookmakerKey": "fanduel",
+        "homeTeam": "Synthetic Home",
+        "awayTeam": "Synthetic Away",
+        "outcome": "Over",
+        "point": 60,
+        "updatedAt": "2026-11-07T18:59:30+00:00",
+        "fetchedAt": "2026-11-07T19:00:00+00:00",
+        "playerName": "Synthetic Player A",
+        "playerIdentityBasis": "provider_description",
+        "settlement": {
+          "status": "rules_required",
+          "thresholdSemantics": "alternate_integer_unverified",
+          "pushPossible": null,
+          "nonParticipation": "unknown",
+          "overtime": "unknown"
+        }
+      },
+      "quoteSource": {
+        "id": "quote:leg-1",
+        "provider": "The Odds API",
+        "sourceUrl": "https://the-odds-api.com/",
+        "updatedAt": "2026-11-07T18:59:30+00:00",
+        "retrievedAt": "2026-11-07T19:00:00+00:00"
+      },
+      "price": {
+        "americanOdds": "-110",
+        "decimalOdds": "1.90909090909",
+        "decimalFraction": {
+          "numerator": 21,
+          "denominator": 11
+        },
+        "breakEvenPercent": 52.38095238095238,
+        "basis": "bookmaker_price_not_win_forecast"
+      },
+      "gameScript": {
+        "status": "unavailable",
+        "reason": "forecast_not_configured",
+        "mostLikelyScenarioId": null,
+        "scenarios": [],
+        "selections": []
+      },
+      "legImplication": "Synthetic Player A \u00b7 rushing yards. The feed lists Over 60. At exactly 60 yards, the result is unverified: alternate markets can contain milestones or Over/Under lines. No win, loss or refund at that boundary is assumed. Participation, overtime, push and void rules need verification. The provider player name is not a verified roster/player ID.",
+      "weather": {
+        "status": "unavailable",
+        "reason": "verified_venue_required"
+      },
+      "modelWinProbability": null,
+      "probabilityBasis": "unavailable",
+      "seven": [
+        {
+          "seat": 1,
+          "name": "Jeeves",
+          "status": "ok",
+          "bullets": [
+            "Event and selection match fresh provider data; roster/injury research requires cited context."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        },
+        {
+          "seat": 2,
+          "name": "Luna",
+          "status": "needs_data",
+          "bullets": [
+            "Priced alternate lines and the customer payout floor are needed before ranking alternatives."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 3,
+          "name": "Pax",
+          "status": "needs_data",
+          "bullets": [
+            "Same-game legs require joint outcomes; no bankroll sizing or independence is assumed."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 4,
+          "name": "Winston",
+          "status": "ok",
+          "bullets": [
+            "Quoted decimal price 1.90909090909; break-even 52.38% is a price threshold."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        },
+        {
+          "seat": 5,
+          "name": "Lisa",
+          "status": "needs_data",
+          "bullets": [
+            "Synthetic Player A \u00b7 rushing yards. The feed lists Over 60. At exactly 60 yards, the result is unverified: alternate markets can contain milestones or Over/Under lines. No win, loss or refund at that boundary is assumed. Participation, overtime, push and void rules need verification. The provider player name is not a verified roster/player ID. No supported win estimate is available."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        },
+        {
+          "seat": 6,
+          "name": "Diego",
+          "status": "not_applicable",
+          "bullets": [
+            "No promotion is applied; sportsbook settlement and any future token terms require verification."
+          ],
+          "evidenceIds": []
+        },
+        {
+          "seat": 7,
+          "name": "Gus",
+          "status": "needs_data",
+          "bullets": [
+            "Whole-ticket value remains unestablished without joint model support and a combined quote."
+          ],
+          "evidenceIds": [
+            "quote:leg-1"
+          ]
+        }
+      ]
+    }
+  ],
+  "assessment": {
+    "status": "insufficient_data",
+    "estimatedWinProbability": null,
+    "offeredParlayDecimalPrice": null,
+    "alternatives": [],
+    "reasons": [
+      "A calibrated joint ticket forecast and actual combined sportsbook quote are not configured.",
+      "Individual win probabilities are not multiplied into a same-game forecast.",
+      "Push and void settlement rules are required before comparing alternate lines or split tickets."
+    ],
+    "comparisonContext": {
+      "totalStake": "10.00",
+      "minimumTotalReturn": null,
+      "stakeBasis": "fixed_total_capital"
+    }
+  }
+}

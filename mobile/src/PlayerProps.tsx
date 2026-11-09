@@ -1,6 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {Pressable,ScrollView,StyleSheet,Text,View} from 'react-native';
-import {checkQuote,isProp,marketLabel,oddsRequest,type Quote} from './odds';
+import {checkQuote,isProp,marketLabel,oddsRequest,propThresholdNotice,type Quote} from './odds';
 import {localTimestamp} from './games';
 
 /** Mounted with the exact event identity as its key. No background prop requests. */
@@ -60,6 +60,7 @@ export default function PlayerProps({game,onChoose,selectedIds,timeZone}:{game:Q
       {button(`${selectedIds.includes(q.id)?'Added · ':''}${q.label} · ${Number(q.americanOdds)>0?'+':''}${q.americanOdds} · ${q.bookmaker}`,
         'prop-quote-'+q.id,()=>{try{checkQuote(q);onChoose(q);}catch(e){setQuotes(null);setError((e as Error).message);}},selectedIds.includes(q.id))}
       <Text style={s.note}>Updated {localTimestamp(q.updatedAt,timeZone)} · The Odds API</Text>
+      {propThresholdNotice(q)?<Text testID={'prop-settlement-'+q.id} style={s.note}>{propThresholdNotice(q)}</Text>:null}
     </View>)}
     <Text style={s.note}>Player lines can join team lines in your parlay. Participation, push and void rules still need verification. Offered prices do not establish a win forecast or a combined same-game payout.</Text>
   </View>;

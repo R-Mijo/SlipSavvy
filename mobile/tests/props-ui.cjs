@@ -4,6 +4,27 @@ const fs=require('node:fs/promises');
 const path=require('node:path');
 const {setup,response,shifted}=require('./app-helper.cjs');
 
+test('uncertain integer alternate is explained before selection, on the ticket and in research',async()=>{
+ const raw=JSON.parse(await fs.readFile(path.join(__dirname,'fixtures/player-settlement-v1.json'),'utf8'));
+ const report=shifted(raw,Date.now()-Date.parse(raw.generatedAt)),q=report.legs[0].quote;
+ const a=await setup(async(url,options)=>{
+  const u=new URL(url);
+  if(u.pathname==='/api/sports')return response({sports:[{key:'americanfootball_nfl',title:'NFL'}]});
+  if(u.pathname==='/api/game-reports')return response(report);
+  if(u.pathname==='/api/odds/props')return response({quotes:[q]});
+  return response({quotes:[{...q,id:'synthetic-team',market:'h2h',outcome:q.homeTeam,point:null,playerName:undefined}]});
+ });
+ try{
+  await a.wait('browse-odds');await a.click('sport-americanfootball_nfl');await a.click('game-'+q.eventId);
+  await a.click('props-rush');await a.click('props-alternate');await a.click('load-props');
+  await a.wait('prop-settlement-'+q.id);assert.match(a.find('prop-settlement-'+q.id).textContent,/At exactly 60 yards/);
+  await a.click('prop-quote-'+q.id);assert.match(a.find('pick-0').textContent,/unverified/);
+  await a.click('analyze-parlay');await a.wait('game-reports');
+  assert.match(a.find('report-leg-0').textContent,/At exactly 60 yards/);
+  await a.click('seven-toggle-0');assert.match(a.find('seven-responses-0').textContent,/No supported win estimate/);
+ }finally{a.close();}
+});
+
 async function app(){
  const raw=JSON.parse(await fs.readFile(path.join(__dirname,'fixtures/player-props-v1.json'),'utf8'));
  const data=shifted(raw,Date.now()-Date.parse(raw.generatedAt));

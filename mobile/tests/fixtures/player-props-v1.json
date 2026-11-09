@@ -341,6 +341,7 @@
         "playerIdentityBasis": "provider_description",
         "settlement": {
           "status": "rules_required",
+          "thresholdSemantics": "over_under_half_point",
           "pushPossible": false,
           "nonParticipation": "unknown",
           "overtime": "unknown"
@@ -370,7 +371,7 @@
         "scenarios": [],
         "selections": []
       },
-      "legImplication": "Requires Synthetic Player A to record over 220.5 passing yards. An integer threshold can push; participation, overtime and void rules need verification. The provider player name is not a verified roster/player ID.",
+      "legImplication": "Requires Synthetic Player A to record over 220.5 passing yards. Participation, overtime, push and void rules need verification. The provider player name is not a verified roster/player ID.",
       "weather": {
         "status": "unavailable",
         "reason": "verified_venue_required"
@@ -423,7 +424,7 @@
           "name": "Lisa",
           "status": "needs_data",
           "bullets": [
-            "Requires Synthetic Player A to record over 220.5 passing yards. An integer threshold can push; participation, overtime and void rules need verification. The provider player name is not a verified roster/player ID. No supported win estimate is available."
+            "Requires Synthetic Player A to record over 220.5 passing yards. Participation, overtime, push and void rules need verification. The provider player name is not a verified roster/player ID. No supported win estimate is available."
           ],
           "evidenceIds": [
             "quote:leg-3"
@@ -487,6 +488,7 @@
         "playerIdentityBasis": "provider_description",
         "settlement": {
           "status": "rules_required",
+          "thresholdSemantics": "over_under_integer",
           "pushPossible": true,
           "nonParticipation": "unknown",
           "overtime": "unknown"
@@ -516,7 +518,7 @@
         "scenarios": [],
         "selections": []
       },
-      "legImplication": "Requires Synthetic Player A to record over 50 rushing yards. An integer threshold can push; participation, overtime and void rules need verification. The provider player name is not a verified roster/player ID.",
+      "legImplication": "Requires Synthetic Player A to record over 50 rushing yards. Participation, overtime, push and void rules need verification. The provider player name is not a verified roster/player ID.",
       "weather": {
         "status": "unavailable",
         "reason": "verified_venue_required"
@@ -569,7 +571,7 @@
           "name": "Lisa",
           "status": "needs_data",
           "bullets": [
-            "Requires Synthetic Player A to record over 50 rushing yards. An integer threshold can push; participation, overtime and void rules need verification. The provider player name is not a verified roster/player ID. No supported win estimate is available."
+            "Requires Synthetic Player A to record over 50 rushing yards. Participation, overtime, push and void rules need verification. The provider player name is not a verified roster/player ID. No supported win estimate is available."
           ],
           "evidenceIds": [
             "quote:leg-4"

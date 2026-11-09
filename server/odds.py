@@ -11,6 +11,7 @@ from urllib.parse import urlencode, parse_qs
 from urllib.request import Request
 from urllib.error import HTTPError, URLError
 from .report_sources import read_json_response
+from .prop_settlement import prop_settlement, threshold_unverified
 
 SPORTS = {'americanfootball_nfl', 'americanfootball_ncaaf', 'basketball_nba',
           'basketball_ncaab', 'icehockey_nhl', 'baseball_mlb'}
@@ -89,7 +90,12 @@ def pair_opposing_quotes(quotes):
         own = buckets.get((item.get('eventId'), item.get('sport'), item.get('bookmakerKey'),
                            market, item.get('updatedAt'), outcome, point, item.get('playerName')), [])
         item['opposingAmericanOdds'] = matches[0]['americanOdds'] if len(matches) == len(own) == 1 else None
-        if point is not None and type(point) in (int, float) and math.isfinite(point):
+        if market in PROP_MARKETS:
+            item['settlement'] = prop_settlement(market, point)
+            item['pushPossible'] = item['settlement']['pushPossible']
+            if threshold_unverified(market, point):
+                item['opposingAmericanOdds'] = None
+        elif point is not None and type(point) in (int, float) and math.isfinite(point):
             item['pushPossible'] = float(point).is_integer()
         paired.append(item)
     return paired
@@ -270,9 +276,7 @@ def normalize_event_markets(data, sport, event_id, now, requested_markets):
                     'point': point,
                     'updatedAt': updated,
                     'fetchedAt': fetched_iso,
-                    **({'playerName': player, 'playerIdentityBasis': 'provider_description',
-                        'settlement': {'status': 'rules_required', 'pushPossible': float(point).is_integer(),
-                                       'nonParticipation': 'unknown', 'overtime': 'unknown'}} if player is not None else {}),
+                    **({'playerName': player, 'playerIdentityBasis': 'provider_description'} if player is not None else {}),
                 })
     return pair_opposing_quotes(quotes)
 
