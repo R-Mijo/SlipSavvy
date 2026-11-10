@@ -3,9 +3,9 @@ import {checkQuote,propThresholdNotice,quotePick,type Quote} from './odds';
 import {reportInput} from './reports';
 
 export const levels = [
-  {label:'Very low',color:'#B83A48'}, {label:'Low',color:'#E77743'},
-  {label:'Moderate',color:'#E9BD45'}, {label:'High',color:'#8CCC55'},
-  {label:'Very high',color:'#40DE86'},
+  {label:'Long shot',color:'#729BFF'}, {label:'Ambitious',color:'#64B9ED'},
+  {label:'Balanced',color:'#57CFC6'}, {label:'Favored',color:'#8CCC88'},
+  {label:'Strong favorite',color:'#C9F84A'},
 ];
 export function oddsScore(odds:string) {
   const score=100/number(american(odds));
@@ -26,8 +26,8 @@ export function ticketPrice(picks:Pick[],now=Date.now()):{decimal:number;score:n
 export type Candidate={quotes:Quote[];decimal:number;returnAmount:number};
 /** Bounded price search, deliberately not a forecasting or AI ranking model. */
 export function candidates(pool:Quote[],sport:string,book:string,legs:number,stake:number,target:number,now=Date.now()):Candidate[] {
-  if(!Number.isInteger(legs)||legs<2||legs>4||![5,10,20].includes(stake)||!Number.isFinite(target)||target<=stake||target>100000)
-    throw Error('Choose 2–4 legs and a total return above your stake, up to $100,000.');
+  if(!Number.isInteger(legs)||legs<2||legs>6||![5,10,20].includes(stake)||!Number.isFinite(target)||target<=stake||target>100000)
+    throw Error('Choose 2–6 legs and a total return above your stake, up to $100,000.');
   const groups=new Map<string,Quote[]>(),ids=new Map<string,number>();
   pool.forEach(q=>ids.set(q.id,(ids.get(q.id)??0)+1));
   for(const q of pool){try{

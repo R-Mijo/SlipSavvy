@@ -5,6 +5,7 @@ import {marketLabel} from './odds';
 import NflResearch from './NflResearch';
 import VenueWeather from './VenueWeather';
 import {Fold} from './FlowUI';
+import {gameEducation} from './gameEducation';
 import {localTimestamp} from './games';
 import {evidenceUrl,fetchReports,reportFresh,reportInput,type EventReport,type GameReports,type LegReport} from './reports';
 
@@ -24,6 +25,7 @@ const matchText:Record<string,string>={matched:'Current line matched',price_chan
   expired_during_report:'This line expired during research — refresh the games'};
 function LegCard({leg,event,pick,index,timeZone}:{leg:LegReport;event?:EventReport;pick:Pick;index:number;timeZone:string}) {
   const [open,setOpen]=useState(index===0),[sources,setSources]=useState(false);
+  const education=gameEducation(pick,leg,event);
   const script=event?.gameScript;
   const leading=script?.scenarios.find(v=>v.id===script.mostLikelyScenarioId);
   return <View style={s.card} testID={'report-leg-'+index}>
@@ -41,7 +43,8 @@ function LegCard({leg,event,pick,index,timeZone}:{leg:LegReport;event?:EventRepo
       {leg.price?<Text style={s.note}>Bookmaker break-even: {leg.price.breakEvenPercent.toFixed(2)}% · a price threshold, not a win forecast.</Text>:null}
       <Text style={s.section}>Game script & rationale</Text>
       {leading?<><Text style={s.text}>{leading.summary}</Text><Text style={s.note}>Highest-weight scenario in the supplied model. Research references and model evaluation remain the operator's responsibility.</Text></>:
-        <Text style={s.note}>{script?.status==='model_supplied'?'The model has no uniquely highest-weight scenario.':'Current game research and a supported forecast are needed before a game script can be shown.'}</Text>}
+        <Text style={s.note}>{script?.status==='model_supplied'?'The model has no uniquely highest-weight scenario.':'No predictive game script is available. The scenario below explains this line’s conditions.'}</Text>}
+      {education?<View testID={'game-education-'+index} style={s.stack}><Text style={s.note}>{education.basis}</Text><Text style={s.section}>What could happen?</Text><Text style={s.text}>{education.script}</Text><Text style={s.section}>Why this line?</Text><Text style={s.text}>{education.why}</Text><Text style={s.section}>What could go wrong?</Text><Text style={s.note}>{education.risk}</Text></View>:null}
       <Text style={s.text}>{leg.legImplication}</Text>
       {event?.context.facts.map((f,i)=><Text key={i} style={s.note}>{f.text}</Text>)}
       <NflResearch research={event?.research} playerName={pick.quote?.playerName} timeZone={timeZone} SourceLink={SourceLink}/>
@@ -85,7 +88,7 @@ export default function AnalyzeParlay({picks,timeZone,stake,floor,autoRun=0,prep
   return <View style={s.stack}>
     <View style={s.card}>
       <Text style={s.title}>Analyze your parlay</Text>
-      <Text style={s.note}>Preview: up to 8 lines across 4 games and 4 sport/market combinations.</Text>
+      <Text style={s.note}>Preview: up to 8 lines across 8 games and 8 sport/market combinations.</Text>
       <Action title={loading?'Analyzing…':'Analyze my parlay'} id="analyze-parlay" disabled={!picks.length||loading} onPress={()=>{void analyze();}}/>
       {loading?<><Text role="status" accessibilityLiveRegion="polite" style={s.note}>Checking your lines and gathering the available evidence…</Text><Action title="Cancel analysis" id="cancel-analysis" secondary onPress={cancel}/></>:null}
       {error?<Text accessibilityRole="alert" testID="report-error" style={s.error}>{error}</Text>:null}

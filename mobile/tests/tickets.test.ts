@@ -8,8 +8,8 @@ function q(eventId:string,odds='-110',patch:Partial<Quote>={}):Quote{return {id:
   startAt:new Date(now+86400000).toISOString(),updatedAt:new Date(now).toISOString(),fetchedAt:new Date(now).toISOString(),...patch};}
 test('five score bands derive only from American prices; extreme prices remain nonzero',()=>{
   assert.equal(oddsScore('+400').score,20);assert.equal(oddsScore('-400').score,80);
-  assert.equal(oddsScore('+100').score,50);assert.equal(oddsScore('+900').label,'Very low');
-  assert.equal(oddsScore('-900').label,'Very high');assert.ok(oddsScore('+100000').score>0);
+  assert.equal(oddsScore('+100').score,50);assert.equal(oddsScore('+900').label,'Long shot');
+  assert.equal(oddsScore('-900').label,'Strong favorite');assert.ok(oddsScore('+100000').score>0);
   assert.throws(()=>oddsScore('0'));assert.throws(()=>oddsScore('NaN'));
 });
 test('ticket price rejects same-game, mixed books, expired prices and edited prices',()=>{
@@ -41,4 +41,11 @@ test('main/alternate rationale compares real supplied prices with a fixed stake'
   const r={quotes:[main,q('b','+100')],decimal:4,returnAmount:40};
   assert.match(selectionReason(main,r,[main,alt],10,40),/\$30.00/);
   assert.match(selectionReason(main,r,[main],10,40),/No comparable/);
+});
+
+test('six-game builder tickets remain reportable and seven-leg generation is rejected',()=>{
+ const pool=Array.from({length:6},(_,i)=>q('six-'+i,'+100'));
+ const results=candidates(pool,'americanfootball_nfl','fanduel',6,10,640,now);
+ assert.equal(results[0].quotes.length,6);assert.equal(results[0].returnAmount,640);
+ assert.throws(()=>candidates(pool,'americanfootball_nfl','fanduel',7,10,640,now));
 });
